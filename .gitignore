@@ -1,0 +1,27 @@
+.ide
+.idea
+.vscode
+sftp-config.json
+
+# macOS
+.DS_Store
+
+/temp/config.yml
+/temp/.env
+/temp/.env.*
+/build
+/tmp
+/vendor
+/tests/*.txt
+/tests/*.html
+config.yml
+
+/cache
+.cache
+/data
+.data
+
+/storage
+/upload
+
+/logs/*.jsonl
