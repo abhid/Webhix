@@ -1,6 +1,7 @@
 .ide
 .idea
 .vscode
+.tools
 sftp-config.json
 
 # macOS
@@ -15,6 +16,7 @@ config/.env
 /vendor
 /tests/*.txt
 /tests/*.html
+/bin
 config.yml
 
 /cache
