@@ -7,6 +7,13 @@ import (
 	"github.com/GaIsBAX/Webhix/pkg"
 )
 
+type CreateEndpointResponseContract struct {
+	ID        int64  `json:"id"`
+	Token     string `json:"token"`
+	Name      string `json:"name,omitempty"`
+	URL       string `json:"url"`
+}
+
 type ResponseContract struct {
 	Success   bool            `json:"success"`
 	Data      json.RawMessage `json:"body,omitempty"`

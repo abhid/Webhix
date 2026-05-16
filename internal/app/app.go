@@ -1,8 +1,10 @@
 package app
 
 import (
-	"log"
+	"context"
+	"log/slog"
 	"net/http"
+	"time"
 
 	"github.com/GaIsBAX/Webhix/internal/config"
 	"github.com/GaIsBAX/Webhix/internal/core"
@@ -11,8 +13,9 @@ import (
 )
 
 type App struct {
-	mux *http.ServeMux
-	cfg *config.Config
+	srv  *http.Server
+	cfg  *config.Config
+	deps *Deps
 }
 
 func New(cfg *config.Config) (*App, error) {
@@ -25,19 +28,48 @@ func New(cfg *config.Config) (*App, error) {
 
 	hookRepository := store.NewHookRepository(deps.DB.DB)
 	hookService := core.NewHookService(hookRepository)
-	hookHandler := server.NewHookHandler(mux, hookService)
+	hookHandler := server.NewHookHandler(mux, hookService, cfg.BaseURL)
 
 	hookHandler.RegisterRoutes()
 
 	return &App{
-		mux: mux,
-		cfg: cfg,
+		srv:  &http.Server{Addr: cfg.Addr, Handler: mux},
+		cfg:  cfg,
+		deps: deps,
 	}, nil
 }
 
-func (a *App) Start() error {
-	log.Printf("starting webhix server on %s", a.cfg.WebHixAddr)
-	return http.ListenAndServe(a.cfg.WebHixAddr, a.mux)
+func (a *App) Start(ctx context.Context) error {
+	errCh := make(chan error, 1)
+	go func() {
+		slog.Info("webhix started", "addr", a.cfg.Addr, "base_url", a.cfg.BaseURL)
+		if err := a.srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			errCh <- err
+		}
+	}()
+
+	select {
+	case err := <-errCh:
+		return err
+	case <-ctx.Done():
+		return a.Shutdown()
+	}
 }
 
-// TODO: Gracefull shutdown
+func (a *App) Shutdown() error {
+	slog.Info("shutting down")
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	if err := a.srv.Shutdown(ctx); err != nil {
+		slog.Error("graceful shutdown failed, forcing close", "err", err)
+		_ = a.srv.Close()
+	}
+
+	if err := a.deps.teardownInfrastructure(); err != nil {
+		slog.Error("teardown error", "err", err)
+	}
+
+	return nil
+}

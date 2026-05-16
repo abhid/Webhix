@@ -10,7 +10,6 @@ sftp-config.json
 /temp/.env
 /temp/.env.*
 config/.env
-config/.env.*
 /build
 /tmp
 /vendor
