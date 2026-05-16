@@ -4,9 +4,6 @@ import (
 	"context"
 	"log/slog"
 	"net/http"
-	"os"
-	"os/signal"
-	"syscall"
 	"time"
 
 	"github.com/GaIsBAX/Webhix/internal/config"
@@ -42,7 +39,7 @@ func New(cfg *config.Config) (*App, error) {
 	}, nil
 }
 
-func (a *App) Start() error {
+func (a *App) Start(ctx context.Context) error {
 	errCh := make(chan error, 1)
 	go func() {
 		slog.Info("webhix started", "addr", a.cfg.Addr, "base_url", a.cfg.BaseURL)
@@ -51,13 +48,10 @@ func (a *App) Start() error {
 		}
 	}()
 
-	quit := make(chan os.Signal, 1)
-	signal.Notify(quit, syscall.SIGTERM, syscall.SIGINT)
-
 	select {
 	case err := <-errCh:
 		return err
-	case <-quit:
+	case <-ctx.Done():
 		return a.Shutdown()
 	}
 }
@@ -69,7 +63,8 @@ func (a *App) Shutdown() error {
 	defer cancel()
 
 	if err := a.srv.Shutdown(ctx); err != nil {
-		slog.Error("shutdown error", "err", err)
+		slog.Error("graceful shutdown failed, forcing close", "err", err)
+		_ = a.srv.Close()
 	}
 
 	if err := a.deps.teardownInfrastructure(); err != nil {
