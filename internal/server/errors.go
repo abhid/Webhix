@@ -1,13 +1,14 @@
 package server
 
 const (
-	ErrCodeValidation   = "VALIDATION_ERROR"
-	ErrCodeUnauthorized = "UNAUTHORIZED"
-	ErrCodeForbidden    = "FORBIDDEN"
-	ErrCodeNotFound     = "NOT_FOUND"
-	ErrCodeConflict     = "CONFLICT"
-	ErrCodeInternal     = "INTERNAL_ERROR"
-	ErrCodeBadRequest   = "BAD_REQUEST"
+	ErrCodeValidation      = "VALIDATION_ERROR"
+	ErrCodeUnauthorized    = "UNAUTHORIZED"
+	ErrCodeForbidden       = "FORBIDDEN"
+	ErrCodeNotFound        = "NOT_FOUND"
+	ErrCodeConflict        = "CONFLICT"
+	ErrCodeInternal        = "INTERNAL_ERROR"
+	ErrCodeBadRequest      = "BAD_REQUEST"
+	ErrCodePayloadTooLarge = "PAYLOAD_TOO_LARGE"
 )
 
 var (
@@ -44,5 +45,10 @@ var (
 	ErrInternal = ErrorContract{
 		Code:    ErrCodeInternal,
 		Message: "Internal server error",
+	}
+
+	ErrPayloadTooLarge = ErrorContract{
+		Code:    ErrCodePayloadTooLarge,
+		Message: "Payload too large",
 	}
 )
