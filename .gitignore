@@ -9,6 +9,7 @@ sftp-config.json
 /temp/config.yml
 /temp/.env
 /temp/.env.*
+config/.env
 /build
 /tmp
 /vendor
