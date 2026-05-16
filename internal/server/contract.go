@@ -8,6 +8,10 @@ import (
 	"github.com/GaIsBAX/Webhix/pkg"
 )
 
+type CreateEndpointRequestContract struct {
+	Name string `json:"name"`
+}
+
 type CreateEndpointResponseContract struct {
 	ID    int64  `json:"id"`
 	Token string `json:"token"`

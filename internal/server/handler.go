@@ -34,22 +34,20 @@ func NewHookHandler(mux *http.ServeMux, srv HookService, baseURL string) *HookHa
 }
 
 func (h *HookHandler) RegisterRoutes() {
-	h.mux.HandleFunc("POST /api/endpoints/{name}", h.CreateEndpoint)
+	h.mux.HandleFunc("POST /api/endpoints", h.CreateEndpoint)
 	h.mux.HandleFunc("GET /api/endpoints/{token}/requests", h.ListRequests)
 	h.mux.HandleFunc("/r/{token}", h.ReceiveWebhook)
 }
 
 func (h *HookHandler) CreateEndpoint(w http.ResponseWriter, r *http.Request) {
-	name := r.PathValue("name")
-	if name == "" {
-		SendError(w, http.StatusBadRequest, WithDetails(ErrBadRequest, ErrorDetailContract{
-			Field:   "name",
-			Message: "name is missing",
-		}))
+	contract, err := DecodeContract[CreateEndpointRequestContract](r)
+	if err != nil {
+		slog.Error("create endpoint", "err", err)
+		SendError(w, http.StatusInternalServerError, ErrInternal)
 		return
 	}
 
-	hook, err := h.service.CreateHook(r.Context(), name)
+	hook, err := h.service.CreateHook(r.Context(), contract.Name)
 	if err != nil {
 		slog.Error("create endpoint", "err", err)
 		SendError(w, http.StatusInternalServerError, ErrInternal)
@@ -152,21 +150,4 @@ func (h *HookHandler) ListRequests(w http.ResponseWriter, r *http.Request) {
 	}
 
 	SendSuccess(w, http.StatusOK, data)
-}
-
-func Send(w http.ResponseWriter, status int, msg *ResponseContract) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(status)
-
-	if err := json.NewEncoder(w).Encode(msg); err != nil {
-		http.Error(w, "failed to encode response", http.StatusInternalServerError)
-	}
-}
-
-func SendSuccess(w http.ResponseWriter, status int, data []byte) {
-	Send(w, status, NewSuccessResponseContract(data))
-}
-
-func SendError(w http.ResponseWriter, status int, msg ErrorContract) {
-	Send(w, status, NewErrorResponseContract(msg))
 }
