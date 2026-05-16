@@ -8,8 +8,9 @@ import (
 )
 
 type Config struct {
-	SQLiteDBPath string `env:"SQLITE_DB_PATH"`
-	WebHixAddr   string `env:"WEBHIX_ADDR"`
+	Addr    string `env:"WEBHIX_ADDR"     env-default:":8080"`
+	BaseURL string `env:"WEBHIX_BASE_URL" env-default:"http://localhost:8080"`
+	DBPath  string `env:"WEBHIX_DB_PATH"  env-default:"./data"`
 }
 
 func LoadConfig() (*Config, error) {
