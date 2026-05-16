@@ -1,11 +1,14 @@
 package store
 
 import (
+	"context"
 	"database/sql"
 	"embed"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
+	"time"
 
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/pressly/goose/v3"
@@ -18,8 +21,8 @@ type Database struct {
 	DB *sql.DB
 }
 
-func New(dataDir string) (*Database, error) {
-	if err := os.MkdirAll(dataDir, 0o755); err != nil {
+func New(ctx context.Context, dataDir string) (*Database, error) {
+	if err := os.MkdirAll(dataDir, 0o750); err != nil {
 		return nil, fmt.Errorf("create data dir: %w", err)
 	}
 
@@ -28,7 +31,13 @@ func New(dataDir string) (*Database, error) {
 		return nil, fmt.Errorf("open sqlite: %w", err)
 	}
 
-	if err := db.Ping(); err != nil {
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+
+	if err := db.PingContext(ctx); err != nil {
+		if closeErr := db.Close(); closeErr != nil {
+			return nil, fmt.Errorf("ping sqlite: %w", errors.Join(err, closeErr))
+		}
 		return nil, fmt.Errorf("ping sqlite: %w", err)
 	}
 

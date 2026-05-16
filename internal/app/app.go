@@ -18,10 +18,10 @@ type App struct {
 	deps *Deps
 }
 
-func New(cfg *config.Config) (*App, error) {
+func New(ctx context.Context, cfg *config.Config) (*App, error) {
 	mux := http.NewServeMux()
 
-	deps, err := NewDeps(cfg)
+	deps, err := NewDeps(ctx, cfg)
 	if err != nil {
 		return nil, err
 	}
@@ -33,7 +33,7 @@ func New(cfg *config.Config) (*App, error) {
 	hookHandler.RegisterRoutes()
 
 	return &App{
-		srv:  &http.Server{Addr: cfg.Addr, Handler: mux},
+		srv:  &http.Server{Addr: cfg.Addr, Handler: mux, ReadHeaderTimeout: 5 * time.Second},
 		cfg:  cfg,
 		deps: deps,
 	}, nil
@@ -64,7 +64,9 @@ func (a *App) Shutdown() error {
 
 	if err := a.srv.Shutdown(ctx); err != nil {
 		slog.Error("graceful shutdown failed, forcing close", "err", err)
-		_ = a.srv.Close()
+		if closeErr := a.srv.Close(); closeErr != nil {
+			slog.Error("server close failed", "err", closeErr)
+		}
 	}
 
 	if err := a.deps.teardownInfrastructure(); err != nil {

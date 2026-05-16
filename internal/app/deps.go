@@ -1,6 +1,7 @@
 package app
 
 import (
+	"context"
 	"errors"
 
 	"github.com/GaIsBAX/Webhix/internal/config"
@@ -12,22 +13,22 @@ type Deps struct {
 	cfg *config.Config
 }
 
-func NewDeps(cfg *config.Config) (*Deps, error) {
+func NewDeps(ctx context.Context, cfg *config.Config) (*Deps, error) {
 	deps := &Deps{
 		cfg: cfg,
 	}
 
-	if err := deps.setupInfrastructure(); err != nil {
+	if err := deps.setupInfrastructure(ctx); err != nil {
 		return nil, err
 	}
 
 	return deps, nil
 }
 
-func (d *Deps) setupInfrastructure() error {
+func (d *Deps) setupInfrastructure(ctx context.Context) error {
 	var errs []error
 
-	database, err := store.New(d.cfg.DBPath)
+	database, err := store.New(ctx, d.cfg.DBPath)
 	if err != nil {
 		errs = append(errs, err)
 	}

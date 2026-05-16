@@ -51,7 +51,10 @@ func newPrettyHandler(out io.Writer, opts *slog.HandlerOptions) slog.Handler {
 		opts = &slog.HandlerOptions{}
 	}
 
-	cwd, _ := os.Getwd()
+	cwd, err := os.Getwd()
+	if err != nil {
+		cwd = ""
+	}
 
 	return &prettyHandler{
 		out:       out,
@@ -242,6 +245,10 @@ func formatLogValue(value slog.Value) string {
 			return quoteLogString(err.Error())
 		}
 
+		return quoteLogString(fmt.Sprintf("%+v", value.Any()))
+	case slog.KindGroup:
+		return quoteLogString(fmt.Sprintf("%+v", value.Group()))
+	case slog.KindLogValuer:
 		return quoteLogString(fmt.Sprintf("%+v", value.Any()))
 	default:
 		return quoteLogString(value.String())
