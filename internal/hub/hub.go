@@ -43,11 +43,11 @@ func (h *Hub) Subscribe(token string) (<-chan []byte, func()) {
 		for i, sub := range subs {
 			if sub == ch {
 				h.subscribers[token] = append(subs[:i], subs[i+1:]...)
+				if len(h.subscribers[token]) == 0 {
+					delete(h.subscribers, token)
+				}
 				break
 			}
-		}
-		if len(h.subscribers[token]) == 0 {
-			delete(h.subscribers, token)
 		}
 		// ch is intentionally not closed here: Publish holds a copied reference
 		// and a non-blocking send to a closed channel panics. The channel is
