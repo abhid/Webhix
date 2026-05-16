@@ -1,3 +1,5 @@
+gh.tarampamp.am/colors v1.3.0 h1:y214FkXd/YsnTt5oxClOUYOZIrHBO9dpLYxn+hWAxRk=
+gh.tarampamp.am/colors v1.3.0/go.mod h1:dcvCIw5azlFgTRMW5U8GU2UuN2kPsxGPwSSzFbSvB64=
 github.com/BurntSushi/toml v1.2.1/go.mod h1:CxXYINrC8qIiEnFrOxCa7Jy5BFHlXnUU2pbicEuybxQ=
 github.com/BurntSushi/toml v1.6.0 h1:dRaEfpa2VI55EwlIW72hMRHdWouJeRF7TPYhI+AUQjk=
 github.com/BurntSushi/toml v1.6.0/go.mod h1:ukJfTF/6rtPPRCnwkur4qwRxa8vTRFBF0uk2lLoLwho=
