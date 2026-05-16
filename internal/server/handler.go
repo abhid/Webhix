@@ -4,11 +4,13 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"log/slog"
 	"net/http"
 
 	"github.com/GaIsBAX/Webhix/internal/domain"
+	"github.com/GaIsBAX/Webhix/internal/hub"
 )
 
 const maxBodySize = 5 << 20 // 5MB
@@ -23,19 +25,22 @@ type HookHandler struct {
 	mux     *http.ServeMux
 	service HookService
 	baseURL string
+	hub     *hub.Hub
 }
 
-func NewHookHandler(mux *http.ServeMux, srv HookService, baseURL string) *HookHandler {
+func NewHookHandler(mux *http.ServeMux, srv HookService, baseURL string, hub *hub.Hub) *HookHandler {
 	return &HookHandler{
 		mux:     mux,
 		service: srv,
 		baseURL: baseURL,
+		hub:     hub,
 	}
 }
 
 func (h *HookHandler) RegisterRoutes() {
 	h.mux.HandleFunc("POST /api/endpoints", h.CreateEndpoint)
 	h.mux.HandleFunc("GET /api/endpoints/{token}/requests", h.ListRequests)
+	h.mux.HandleFunc("GET /api/endpoints/{token}/events", h.StreamEvents)
 	h.mux.HandleFunc("/r/{token}", h.ReceiveWebhook)
 }
 
@@ -125,6 +130,9 @@ func (h *HookHandler) ReceiveWebhook(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Publish the new request to SSE subscribers.
+	h.hub.Publish(token, data)
+
 	SendSuccess(w, http.StatusOK, data)
 }
 
@@ -155,4 +163,39 @@ func (h *HookHandler) ListRequests(w http.ResponseWriter, r *http.Request) {
 	}
 
 	SendSuccess(w, http.StatusOK, data)
+}
+
+func (h *HookHandler) StreamEvents(w http.ResponseWriter, r *http.Request) {
+	token := r.PathValue("token")
+
+	w.Header().Set("Content-Type", "text/event-stream")
+	w.Header().Set("Cache-Control", "no-cache")
+	w.Header().Set("Connection", "keep-alive")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.WriteHeader(http.StatusOK)
+
+	if f, ok := w.(http.Flusher); ok {
+		f.Flush()
+	}
+
+	ch, unsubscribe := h.hub.Subscribe(token)
+	defer unsubscribe()
+
+	flusher, canFlush := w.(http.Flusher)
+
+	for {
+		select {
+		case <-r.Context().Done():
+			return
+		case <-h.hub.Done():
+			return
+		case data := <-ch:
+			if _, err := fmt.Fprintf(w, "data: %s\n\n", data); err != nil {
+				return
+			}
+			if canFlush {
+				flusher.Flush()
+			}
+		}
+	}
 }
