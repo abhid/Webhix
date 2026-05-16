@@ -72,7 +72,12 @@ func (h *HookHandler) CreateEndpoint(w http.ResponseWriter, r *http.Request) {
 func (h *HookHandler) ReceiveWebhook(w http.ResponseWriter, r *http.Request) {
 	token := r.PathValue("token")
 
-	headersJSON, _ := json.Marshal(r.Header)
+	headersJSON, err := json.Marshal(r.Header)
+	if err != nil {
+		slog.Error("marshal request headers", "err", err)
+		SendError(w, http.StatusInternalServerError, ErrInternal)
+		return
+	}
 
 	r.Body = http.MaxBytesReader(w, r.Body, maxBodySize)
 	body, err := io.ReadAll(r.Body)
@@ -85,7 +90,7 @@ func (h *HookHandler) ReceiveWebhook(w http.ResponseWriter, r *http.Request) {
 			}))
 			return
 		}
-		slog.Error("read webhook body", "token", token, "err", err)
+		slog.Error("read webhook body", "err", err)
 		SendError(w, http.StatusBadRequest, WithDetails(ErrBadRequest, ErrorDetailContract{
 			Field:   "body",
 			Message: "failed to read body",
