@@ -2,20 +2,24 @@ package app
 
 import (
 	"context"
+	"io/fs"
 	"log/slog"
 	"net/http"
 	"time"
 
 	"github.com/GaIsBAX/Webhix/internal/config"
 	"github.com/GaIsBAX/Webhix/internal/core"
+	"github.com/GaIsBAX/Webhix/internal/hub"
 	"github.com/GaIsBAX/Webhix/internal/server"
 	"github.com/GaIsBAX/Webhix/internal/store"
+	"github.com/GaIsBAX/Webhix/internal/web"
 )
 
 type App struct {
 	srv  *http.Server
 	cfg  *config.Config
 	deps *Deps
+	hub  *hub.Hub
 }
 
 func New(ctx context.Context, cfg *config.Config) (*App, error) {
@@ -26,16 +30,27 @@ func New(ctx context.Context, cfg *config.Config) (*App, error) {
 		return nil, err
 	}
 
+	eventHub := hub.New()
+
 	hookRepository := store.NewHookRepository(deps.DB.DB)
 	hookService := core.NewHookService(hookRepository)
-	hookHandler := server.NewHookHandler(mux, hookService, cfg.BaseURL)
+	hookHandler := server.NewHookHandler(mux, hookService, cfg.BaseURL, eventHub)
 
 	hookHandler.RegisterRoutes()
+
+	staticSub, err := fs.Sub(web.Static, "static")
+	if err != nil {
+		return nil, err
+	}
+	staticFS := http.FileServer(http.FS(staticSub))
+	mux.Handle("/ui/", http.StripPrefix("/ui/", staticFS))
+	mux.Handle("/", staticFS)
 
 	return &App{
 		srv:  &http.Server{Addr: cfg.Addr, Handler: mux, ReadHeaderTimeout: 5 * time.Second},
 		cfg:  cfg,
 		deps: deps,
+		hub:  eventHub,
 	}, nil
 }
 
@@ -58,6 +73,7 @@ func (a *App) Start(ctx context.Context) error {
 
 func (a *App) Shutdown() error {
 	slog.Info("shutting down")
+	a.hub.Close()
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
