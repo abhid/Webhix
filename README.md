@@ -1,5 +1,7 @@
 # Webhix
 
+[![RU](https://img.shields.io/badge/lang-ru-blue)](docs/README.ru.md) [![Contributing](https://img.shields.io/badge/contributing-guide-brightgreen)](CONTRIBUTING.md)
+
 Self-hosted webhook inspector. Single binary, SQLite, no external dependencies.
 
 webhook.site is the go-to tool for debugging webhooks, but it sends your data to someone else's server. Stripe payloads, OAuth tokens, PII — all of it leaves your network. A lot of companies block it outright for that reason. Webhix runs on your own infrastructure, stores everything locally, and stays out of your way.
@@ -17,14 +19,14 @@ Beyond just inspecting requests, you can:
 
 ## Quick start
 
-**Binary**
+### Binary
 
 ```sh
 curl -fsSL https://webhix.dev/install.sh | sh
 webhix serve --base-url https://hooks.yourdomain.com
 ```
 
-**Docker**
+### Docker
 
 ```sh
 docker run -p 8080:8080 -v webhix-data:/data \
@@ -32,7 +34,7 @@ docker run -p 8080:8080 -v webhix-data:/data \
   ghcr.io/gaisbax/webhix
 ```
 
-**Docker Compose**
+### Docker Compose
 
 ```yaml
 services:
@@ -44,7 +46,7 @@ services:
       WEBHIX_BASE_URL: https://hooks.yourdomain.com
 ```
 
-**Local dev (no domain needed)**
+### Local dev (no domain needed)
 
 ```sh
 webhix serve
@@ -67,12 +69,11 @@ Works behind Caddy, Nginx, Traefik. Reads `X-Forwarded-*` headers automatically.
 
 ## Configuration
 
-| Flag | Env var | Default | Description |
-|------|---------|---------|-------------|
-| `--base-url` | `WEBHIX_BASE_URL` | `http://localhost:8080` | Public base URL for generated endpoint links |
-| `--port` | `WEBHIX_PORT` | `8080` | Port to listen on |
-| `--data` | `WEBHIX_DATA` | `./data` | Directory for SQLite database |
-| `--password` | `WEBHIX_PASSWORD` | auto-generated | UI password |
+| Env var | Default | Description |
+| ------- | ------- | ----------- |
+| `WEBHIX_BASE_URL` | `http://localhost:8080` | Public base URL for generated endpoint links |
+| `WEBHIX_ADDR` | `:8080` | Address to listen on (e.g. `0.0.0.0:9000`) |
+| `WEBHIX_DB_PATH` | `./data` | Path to SQLite database directory |
 
 ## Technical notes
 
@@ -84,7 +85,8 @@ Works behind Caddy, Nginx, Traefik. Reads `X-Forwarded-*` headers automatically.
 
 ## Roadmap
 
-**v0.2**
+### v0.2
+
 - Multi-user support with basic RBAC
 - Webhook signature verification (Stripe, GitHub style)
 - Schema validation
@@ -92,7 +94,8 @@ Works behind Caddy, Nginx, Traefik. Reads `X-Forwarded-*` headers automatically.
 - Optional Postgres support
 - Auto-HTTPS via Let's Encrypt (no reverse proxy needed)
 
-**v0.3+**
+### v0.3+
+
 - Tunnel mode — connect Webhix to a managed relay and get a public URL without a server
 
 ## License
