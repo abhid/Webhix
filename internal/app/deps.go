@@ -8,8 +8,7 @@ import (
 )
 
 type Deps struct {
-	DB *store.Database
-
+	DB  *store.Database
 	cfg *config.Config
 }
 
@@ -28,17 +27,22 @@ func NewDeps(cfg *config.Config) (*Deps, error) {
 func (d *Deps) setupInfrastructure() error {
 	var errs []error
 
-	database, err := store.New(d.cfg.SQLiteDBPath)
+	database, err := store.New(d.cfg.DBPath)
 	if err != nil {
 		errs = append(errs, err)
 	}
 
 	d.DB = database
 
+	if d.DB != nil {
+		if err := d.DB.Migrate(); err != nil {
+			errs = append(errs, err)
+		}
+	}
+
 	return errors.Join(errs...)
 }
 
-// TODO: применить чуть позже
 func (d *Deps) teardownInfrastructure() error {
 	var errs []error
 
