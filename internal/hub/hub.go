@@ -46,6 +46,9 @@ func (h *Hub) Subscribe(token string) (<-chan []byte, func()) {
 				break
 			}
 		}
+		if len(h.subscribers[token]) == 0 {
+			delete(h.subscribers, token)
+		}
 		// ch is intentionally not closed here: Publish holds a copied reference
 		// and a non-blocking send to a closed channel panics. The channel is
 		// simply dropped from the map and will be GC'd when no longer referenced.
