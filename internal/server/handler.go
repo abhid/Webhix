@@ -3,14 +3,20 @@ package server
 import (
 	"context"
 	"encoding/json"
+	"errors"
+	"io"
 	"log/slog"
 	"net/http"
 
 	"github.com/GaIsBAX/Webhix/internal/domain"
 )
 
+const maxBodySize = 5 << 20 // 5MB
+
 type HookService interface {
 	CreateHook(ctx context.Context, token string) (domain.Hook, error)
+	ReceiveWebhook(ctx context.Context, token string, params domain.CreateWebhookRequestParams) (domain.WebhookRequest, error)
+	ListWebhookRequests(ctx context.Context, token string) ([]domain.WebhookRequest, error)
 }
 
 type HookHandler struct {
@@ -29,6 +35,7 @@ func NewHookHandler(mux *http.ServeMux, srv HookService, baseURL string) *HookHa
 
 func (h *HookHandler) RegisterRoutes() {
 	h.mux.HandleFunc("POST /api/endpoints/{name}", h.CreateEndpoint)
+	h.mux.HandleFunc("GET /api/endpoints/{token}/requests", h.ListRequests)
 	h.mux.HandleFunc("/r/{token}", h.ReceiveWebhook)
 }
 
@@ -65,8 +72,69 @@ func (h *HookHandler) CreateEndpoint(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *HookHandler) ReceiveWebhook(w http.ResponseWriter, r *http.Request) {
-	// TODO: захват входящего вебхука (headers, body, query, metadata)
-	w.WriteHeader(http.StatusOK)
+	token := r.PathValue("token")
+
+	headersJSON, _ := json.Marshal(r.Header)
+
+	body, _ := io.ReadAll(io.LimitReader(r.Body, maxBodySize))
+
+	req, err := h.service.ReceiveWebhook(r.Context(), token, domain.CreateWebhookRequestParams{
+		Method:      r.Method,
+		Path:        r.URL.Path,
+		Query:       r.URL.RawQuery,
+		Headers:     string(headersJSON),
+		Body:        body,
+		RemoteAddr:  r.RemoteAddr,
+		ContentType: r.Header.Get("Content-Type"),
+		BodySize:    int64(len(body)),
+	})
+	if err != nil {
+		if errors.Is(err, domain.ErrNotFound) {
+			SendError(w, http.StatusNotFound, ErrNotFound)
+			return
+		}
+		slog.Error("receive webhook", "err", err)
+		SendError(w, http.StatusInternalServerError, ErrInternal)
+		return
+	}
+
+	data, err := json.Marshal(toWebhookRequestContract(req))
+	if err != nil {
+		slog.Error("marshal webhook request", "err", err)
+		SendError(w, http.StatusInternalServerError, ErrInternal)
+		return
+	}
+
+	SendSuccess(w, http.StatusOK, data)
+}
+
+func (h *HookHandler) ListRequests(w http.ResponseWriter, r *http.Request) {
+	token := r.PathValue("token")
+
+	reqs, err := h.service.ListWebhookRequests(r.Context(), token)
+	if err != nil {
+		if errors.Is(err, domain.ErrNotFound) {
+			SendError(w, http.StatusNotFound, ErrNotFound)
+			return
+		}
+		slog.Error("list requests", "err", err)
+		SendError(w, http.StatusInternalServerError, ErrInternal)
+		return
+	}
+
+	contracts := make([]WebhookRequestContract, len(reqs))
+	for i, req := range reqs {
+		contracts[i] = toWebhookRequestContract(req)
+	}
+
+	data, err := json.Marshal(contracts)
+	if err != nil {
+		slog.Error("marshal requests", "err", err)
+		SendError(w, http.StatusInternalServerError, ErrInternal)
+		return
+	}
+
+	SendSuccess(w, http.StatusOK, data)
 }
 
 func Send(w http.ResponseWriter, status int, msg *ResponseContract) {
