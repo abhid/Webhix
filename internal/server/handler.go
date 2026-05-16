@@ -76,7 +76,24 @@ func (h *HookHandler) ReceiveWebhook(w http.ResponseWriter, r *http.Request) {
 
 	headersJSON, _ := json.Marshal(r.Header)
 
-	body, _ := io.ReadAll(io.LimitReader(r.Body, maxBodySize))
+	r.Body = http.MaxBytesReader(w, r.Body, maxBodySize)
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		var maxBytesErr *http.MaxBytesError
+		if errors.As(err, &maxBytesErr) {
+			SendError(w, http.StatusRequestEntityTooLarge, WithDetails(ErrPayloadTooLarge, ErrorDetailContract{
+				Field:   "body",
+				Message: "body exceeds 5MB limit",
+			}))
+			return
+		}
+		slog.Error("read webhook body", "token", token, "err", err)
+		SendError(w, http.StatusBadRequest, WithDetails(ErrBadRequest, ErrorDetailContract{
+			Field:   "body",
+			Message: "failed to read body",
+		}))
+		return
+	}
 
 	req, err := h.service.ReceiveWebhook(r.Context(), token, domain.CreateWebhookRequestParams{
 		Method:      r.Method,
