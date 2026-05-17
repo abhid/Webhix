@@ -143,7 +143,7 @@ function replayRequest(): void {
   const request = selectedRequest(state);
   if (!request) return;
 
-  let headers: Record<string, string> = {};
+  const headers: Record<string, string> = {};
   if (request.headers) {
     try {
       const parsed = JSON.parse(request.headers) as Record<string, string | string[]>;
