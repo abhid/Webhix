@@ -39,7 +39,8 @@ func (o *Options) Validate() error {
 		return fmt.Errorf("addr cannot be empty")
 	}
 
-	if _, err := url.Parse(o.BaseURL); err != nil {
+	u, err := url.Parse(o.BaseURL)
+	if err != nil || u.Scheme == "" || u.Host == "" {
 		return fmt.Errorf("invalid base URL:\n  got:  %s\n  want: https://hooks.example.com", o.BaseURL)
 	}
 
