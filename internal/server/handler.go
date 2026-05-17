@@ -280,4 +280,3 @@ func (h *HookHandler) SetResponse(w http.ResponseWriter, r *http.Request) {
 
 	SendSuccess(w, http.StatusOK, data)
 }
-
