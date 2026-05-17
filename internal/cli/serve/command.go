@@ -15,17 +15,16 @@ const (
 )
 
 func NewCommand(ctx context.Context, cfg *config.Config) *cobra.Command {
-	opts := NewOptions(cfg)
+	opts := DefaultOptions()
 
 	cmd := &cobra.Command{
 		Use:   "serve",
 		Short: "Start webhix server",
 
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if err := opts.Validate(); err != nil {
+			if err := opts.Validate(cfg); err != nil {
 				return err
 			}
-			opts.Apply(cfg)
 
 			app, err := app.New(ctx, cfg)
 			if err != nil {
@@ -37,7 +36,7 @@ func NewCommand(ctx context.Context, cfg *config.Config) *cobra.Command {
 		},
 	}
 
-	RegisterFlags(cmd, &opts)
+	RegisterFlags(cmd, cfg, &opts)
 
 	return cmd
 }

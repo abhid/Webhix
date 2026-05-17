@@ -8,55 +8,25 @@ import (
 	"github.com/GaIsBAX/Webhix/internal/config"
 )
 
-type Options struct {
-	Addr    string
-	DBPath  string
-	BaseURL string
-
-	Password  string
-	SecretKey string
-
-	MaxBodySize    int
-	TrustedProxies []string
-}
+type Options struct{}
 
 func DefaultOptions() Options {
 	return Options{}
 }
 
-func NewOptions(cfg *config.Config) Options {
-	opts := DefaultOptions()
-
-	if cfg != nil {
-		opts.Addr = cfg.Addr
-		opts.DBPath = cfg.DBPath
-		opts.BaseURL = cfg.BaseURL
-		opts.Password = cfg.Password
-		opts.SecretKey = cfg.SecretKey
-		opts.TrustedProxies = cfg.TrustedProxies
-	}
-
-	return opts
-}
-
-func (o *Options) Validate() error {
-	if strings.TrimSpace(o.Addr) == "" {
+func (o *Options) Validate(cfg *config.Config) error {
+	if strings.TrimSpace(cfg.Addr) == "" {
 		return fmt.Errorf("addr cannot be empty")
 	}
 
-	u, err := url.Parse(o.BaseURL)
+	u, err := url.Parse(cfg.BaseURL)
 	if err != nil || u.Scheme == "" || u.Host == "" {
-		return fmt.Errorf("invalid base URL:\n  got:  %s\n  want: https://hooks.example.com", o.BaseURL)
+		return fmt.Errorf("invalid base URL:\n  got:  %s\n  want: https://hooks.example.com", cfg.BaseURL)
+	}
+
+	if cfg.MaxBodySize <= 0 {
+		return fmt.Errorf("max body size must be greater than 0")
 	}
 
 	return nil
-}
-
-func (o *Options) Apply(cfg *config.Config) {
-	cfg.Addr = o.Addr
-	cfg.DBPath = o.DBPath
-	cfg.BaseURL = o.BaseURL
-	cfg.Password = o.Password
-	cfg.SecretKey = o.SecretKey
-	cfg.TrustedProxies = o.TrustedProxies
 }

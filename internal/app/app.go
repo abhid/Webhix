@@ -36,7 +36,10 @@ func New(ctx context.Context, cfg *config.Config) (*App, error) {
 
 	hookRepository := store.NewHookRepository(deps.DB.DB)
 	hookService := core.NewHookService(hookRepository)
-	hookHandler := server.NewHookHandler(mux, hookService, cfg.BaseURL, eventHub)
+	hookHandler := server.NewHookHandler(mux, hookService, eventHub, server.HookHandlerOptions{
+		BaseURL:     cfg.BaseURL,
+		MaxBodySize: cfg.MaxBodySize,
+	})
 
 	hookHandler.RegisterRoutes()
 
