@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"fmt"
 	"io/fs"
 	"log/slog"
 	"net/http"
@@ -11,6 +12,7 @@ import (
 	"github.com/GaIsBAX/Webhix/internal/core"
 	"github.com/GaIsBAX/Webhix/internal/hub"
 	"github.com/GaIsBAX/Webhix/internal/server"
+	"github.com/GaIsBAX/Webhix/internal/server/middleware"
 	"github.com/GaIsBAX/Webhix/internal/store"
 	"github.com/GaIsBAX/Webhix/internal/web"
 )
@@ -46,8 +48,18 @@ func New(ctx context.Context, cfg *config.Config) (*App, error) {
 	mux.Handle("/ui/", http.StripPrefix("/ui/", staticFS))
 	mux.Handle("/", staticFS)
 
+	handler := http.Handler(mux)
+	if len(cfg.TrustedProxies) > 0 {
+		trustedProxies := middleware.NewTrustedProxies(cfg.TrustedProxies)
+		if trustedProxies == nil {
+			return nil, fmt.Errorf("invalid trusted proxies")
+		}
+
+		handler = trustedProxies.BehindProxy(handler)
+	}
+
 	return &App{
-		srv:  &http.Server{Addr: cfg.Addr, Handler: mux, ReadHeaderTimeout: 5 * time.Second},
+		srv:  &http.Server{Addr: cfg.Addr, Handler: handler, ReadHeaderTimeout: 5 * time.Second},
 		cfg:  cfg,
 		deps: deps,
 		hub:  eventHub,

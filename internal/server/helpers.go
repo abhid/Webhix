@@ -31,3 +31,10 @@ func DecodeContract[T any](req *http.Request) (*T, error) {
 
 	return &body, nil
 }
+
+func Chain(h http.Handler, middlewares ...func(http.Handler) http.Handler) http.Handler {
+	for i := len(middlewares) - 1; i >= 0; i-- {
+		h = middlewares[i](h)
+	}
+	return h
+}
