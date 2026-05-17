@@ -1,4 +1,4 @@
-import { closeSync, mkdirSync, openSync } from 'node:fs';
+import { closeSync, mkdirSync, openSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { defineConfig } from 'vite';
 
@@ -17,6 +17,10 @@ export default defineConfig({
       closeBundle() {
         mkdirSync(staticDir, { recursive: true });
         closeSync(openSync(resolve(staticDir, '.gitkeep'), 'a'));
+        writeFileSync(
+          resolve(staticDir, 'placeholder.txt'),
+          'Static UI build output is generated here by Vite.\n',
+        );
       },
     },
   ],

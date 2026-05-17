@@ -22,6 +22,7 @@ config.yml
 node_modules
 internal/web/static/*
 !internal/web/static/.gitkeep
+!internal/web/static/placeholder.txt
 
 /cache
 .cache
