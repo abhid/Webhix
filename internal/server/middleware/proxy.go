@@ -33,11 +33,8 @@ func (tp *TrustedProxies) BehindProxy(next http.Handler) http.Handler {
 		}
 
 		if forwardedFor := r.Header.Get("X-Forwarded-For"); forwardedFor != "" {
-			parts := strings.Split(forwardedFor, ",")
-			clientIP := strings.TrimSpace(parts[0])
-
-			if net.ParseIP(clientIP) != nil {
-				r.RemoteAddr = net.JoinHostPort(clientIP, "0")
+			if clientIP := tp.forwardedClientIP(forwardedFor); clientIP != nil {
+				r.RemoteAddr = net.JoinHostPort(clientIP.String(), "0")
 			}
 		}
 
@@ -54,6 +51,18 @@ func (tp *TrustedProxies) BehindProxy(next http.Handler) http.Handler {
 	})
 }
 
+func (tp *TrustedProxies) forwardedClientIP(forwardedFor string) net.IP {
+	parts := strings.Split(forwardedFor, ",")
+	for i := len(parts) - 1; i >= 0; i-- {
+		ip := net.ParseIP(strings.TrimSpace(parts[i]))
+		if ip != nil && !tp.isTrustedIP(ip) {
+			return ip
+		}
+	}
+
+	return nil
+}
+
 func (tp *TrustedProxies) isTrusted(r *http.Request) bool {
 	host, _, err := net.SplitHostPort(r.RemoteAddr)
 	if err != nil {
@@ -65,6 +74,10 @@ func (tp *TrustedProxies) isTrusted(r *http.Request) bool {
 		return false
 	}
 
+	return tp.isTrustedIP(ip)
+}
+
+func (tp *TrustedProxies) isTrustedIP(ip net.IP) bool {
 	for _, ipNet := range tp.ranges {
 		if ipNet.Contains(ip) {
 			return true
