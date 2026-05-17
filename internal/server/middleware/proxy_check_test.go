@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -16,7 +17,7 @@ func TestBehindProxyUsesNearestUntrustedForwardedForAddress(t *testing.T) {
 		require.Equal(t, "1.2.3.4:0", r.RemoteAddr)
 	}))
 
-	req := httptest.NewRequest(http.MethodGet, "http://internal.local/hooks", nil)
+	req := httptest.NewRequestWithContext(context.Background(), http.MethodGet, "http://internal.local/hooks", nil)
 	req.RemoteAddr = "10.1.2.3:4567"
 	req.Header.Set("X-Forwarded-For", "8.8.8.8, 1.2.3.4")
 	rec := httptest.NewRecorder()
