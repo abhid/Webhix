@@ -3,6 +3,7 @@ package cli
 import (
 	"context"
 
+	"github.com/GaIsBAX/Webhix/internal/cli/forward"
 	"github.com/GaIsBAX/Webhix/internal/cli/serve"
 	"github.com/GaIsBAX/Webhix/internal/config"
 	"github.com/spf13/cobra"
@@ -18,6 +19,7 @@ func NewRootCommand(ctx context.Context, cfg *config.Config) *cobra.Command {
 	addGroup(cmd, serve.ServeGroup, serve.ServeTitle)
 
 	cmd.AddCommand(serve.NewCommand(ctx, cfg))
+	cmd.AddCommand(forward.NewCommand(ctx))
 
 	return cmd
 }

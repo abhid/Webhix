@@ -12,10 +12,11 @@ You create an endpoint, point your webhook source at it, and watch requests come
 
 Beyond just inspecting requests, you can:
 
-- **Replay** any request with one click, optionally with edits
-- **Custom responses** — configure the status code, headers, and body your endpoint returns (useful as a lightweight mock server)
+- **Replay** any captured request with one click
+- **Custom responses** — configure the status code, headers, and body your endpoint returns to senders (useful as a lightweight mock server)
 - **CLI forwarding** — pipe incoming requests to a local port: `webhix forward <token> --to localhost:3000`
-- **Export as curl or HTTPie** -- copy any request as a runnable command
+- **Export as curl** — copy any request as a runnable curl command
+- **Search and filter** — filter requests by text or HTTP method
 
 ## Quick start
 
@@ -57,11 +58,20 @@ Endpoint URLs follow the pattern `https://<base-url>/r/<token>`.
 
 ## Auth
 
-Single-user by default. Set a password via env or let Webhix generate one on first run:
+Auth is required. Set at least one of:
 
 ```sh
+# Basic auth password (browser login)
 WEBHIX_PASSWORD=yourpassword webhix serve
+
+# Secret key for API / CLI access (Authorization: Bearer or X-Webhix-Key header)
+WEBHIX_SECRET_KEY=yourkey webhix serve
+
+# Both at once
+webhix serve --password yourpassword --secret-key yourkey
 ```
+
+Webhook capture URLs (`/r/<token>`) are always public — no auth required there.
 
 ## Reverse proxy
 

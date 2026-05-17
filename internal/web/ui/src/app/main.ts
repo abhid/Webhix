@@ -15,6 +15,9 @@ import {
   selectRequest,
   selectedRequest,
   setActiveTab,
+  setMethodFilter,
+  setSearchQuery,
+  uniqueMethods,
 } from '../entities/request/model/request-state';
 import type { RequestTab } from '../entities/request/model/types';
 import { buildCurlCommand } from '../shared/lib/format';
@@ -44,6 +47,19 @@ function init(): void {
   elements.loadTokenButton.addEventListener('click', loadToken);
   elements.createEndpointButton.addEventListener('click', createNewEndpoint);
   elements.requestList.addEventListener('click', handleRequestClick);
+  elements.searchInput.addEventListener('input', () => {
+    setSearchQuery(state, elements.searchInput.value);
+    renderRequestList(elements, state);
+  });
+  elements.methodFilterButton.addEventListener('click', () => {
+    const methods = uniqueMethods(state);
+    const current = state.methodFilter;
+    const idx = current ? methods.indexOf(current) : -1;
+    const next = methods[idx + 1] ?? null;
+    setMethodFilter(state, next);
+    elements.methodFilterButton.textContent = next ?? 'All Methods';
+    renderRequestList(elements, state);
+  });
 
   for (const button of elements.tabButtons) {
     button.addEventListener('click', () => {
@@ -99,7 +115,7 @@ async function createNewEndpoint(): Promise<void> {
 async function loadHistory(token: string): Promise<void> {
   try {
     const requests = await fetchRequests(token);
-    addRequests(state, requests.reverse());
+    addRequests(state, requests);
     renderRequestList(elements, state);
   } catch {
     toast('Failed to load request history');
@@ -156,8 +172,8 @@ function replayRequest(): void {
   }
 
   let body: BodyInit | undefined;
-  if (request.body) {
-    body = typeof request.body === 'string' ? request.body : JSON.stringify(request.body);
+  if (request.body && typeof request.body === 'string') {
+    body = Uint8Array.from(atob(request.body), (c) => c.charCodeAt(0));
   }
 
   elements.replayButton.disabled = true;

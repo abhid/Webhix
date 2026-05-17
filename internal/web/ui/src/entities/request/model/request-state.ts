@@ -5,7 +5,9 @@ export interface AppState {
   requests: WebhookRequest[];
   selectedRequestId: string | null;
   activeTab: RequestTab;
-  seenIds: Set<string>;
+  seenIds: Set<number>;
+  searchQuery: string;
+  methodFilter: string | null;
 }
 
 export function createInitialState(): AppState {
@@ -14,7 +16,9 @@ export function createInitialState(): AppState {
     requests: [],
     selectedRequestId: null,
     activeTab: 'headers',
-    seenIds: new Set(),
+    seenIds: new Set<number>(),
+    searchQuery: '',
+    methodFilter: null,
   };
 }
 
@@ -22,7 +26,9 @@ export function resetForToken(state: AppState, token: string): void {
   state.token = token;
   state.requests = [];
   state.selectedRequestId = null;
-  state.seenIds = new Set();
+  state.seenIds = new Set<number>();
+  state.searchQuery = '';
+  state.methodFilter = null;
 }
 
 export function addRequests(
@@ -51,9 +57,34 @@ export function selectRequest(state: AppState, requestId: string): void {
 }
 
 export function selectedRequest(state: AppState): WebhookRequest | null {
-  return state.requests.find((request) => request.id === state.selectedRequestId) || null;
+  return state.requests.find((request) => String(request.id) === state.selectedRequestId) || null;
 }
 
 export function setActiveTab(state: AppState, tab: RequestTab): void {
   state.activeTab = tab;
+}
+
+export function setSearchQuery(state: AppState, query: string): void {
+  state.searchQuery = query;
+}
+
+export function setMethodFilter(state: AppState, method: string | null): void {
+  state.methodFilter = method;
+}
+
+export function filteredRequests(state: AppState): WebhookRequest[] {
+  const query = state.searchQuery.trim().toLowerCase();
+  return state.requests.filter((request) => {
+    if (state.methodFilter && request.method !== state.methodFilter) return false;
+    if (!query) return true;
+    return (
+      request.path.toLowerCase().includes(query) ||
+      (request.headers ?? '').toLowerCase().includes(query) ||
+      (typeof request.body === 'string' ? atob(request.body) : '').toLowerCase().includes(query)
+    );
+  });
+}
+
+export function uniqueMethods(state: AppState): string[] {
+  return [...new Set(state.requests.map((r) => r.method))].sort();
 }
