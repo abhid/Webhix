@@ -32,10 +32,6 @@ func run(ctx context.Context, opts Options) error {
 	slog.Info("forwarding", "token", opts.Token, "to", targetURL)
 
 	for {
-		if ctx.Err() != nil {
-			return nil
-		}
-
 		if err := stream(ctx, opts, sseURL, targetURL); err != nil {
 			slog.Warn("stream interrupted, reconnecting", "err", err)
 		}
