@@ -33,6 +33,18 @@ type WebhookRequestContract struct {
 	ReceivedAt  time.Time `json:"receivedAt"`
 }
 
+type HookResponseContract struct {
+	StatusCode int               `json:"statusCode"`
+	Headers    map[string]string `json:"headers"`
+	Body       string            `json:"body"`
+}
+
+type SetHookResponseRequestContract struct {
+	StatusCode int               `json:"statusCode"`
+	Headers    map[string]string `json:"headers"`
+	Body       string            `json:"body"`
+}
+
 type ResponseContract struct {
 	Success   bool            `json:"success"`
 	Data      json.RawMessage `json:"body,omitempty"`
@@ -73,6 +85,18 @@ func NewErrorResponseContract(apiErr ErrorContract) *ResponseContract {
 func WithDetails(err ErrorContract, details ...ErrorDetailContract) ErrorContract {
 	err.Details = details
 	return err
+}
+
+func toHookResponseContract(resp domain.HookResponse) HookResponseContract {
+	headers := resp.Headers
+	if headers == nil {
+		headers = map[string]string{}
+	}
+	return HookResponseContract{
+		StatusCode: int(resp.StatusCode),
+		Headers:    headers,
+		Body:       string(resp.Body),
+	}
 }
 
 func toWebhookRequestContract(req domain.WebhookRequest) WebhookRequestContract {

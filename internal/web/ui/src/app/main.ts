@@ -195,5 +195,5 @@ function toast(message: string): void {
 }
 
 function isRequestTab(value: string | undefined): value is RequestTab {
-  return value === 'headers' || value === 'body' || value === 'query' || value === 'info';
+  return value === 'headers' || value === 'body' || value === 'query' || value === 'info' || value === 'settings';
 }
