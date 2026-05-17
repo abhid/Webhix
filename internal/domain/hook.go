@@ -1,6 +1,9 @@
 package domain
 
-import "time"
+import (
+	"fmt"
+	"time"
+)
 
 type Hook struct {
 	ID        int64     `json:"id"`
@@ -25,13 +28,13 @@ type WebhookRequest struct {
 }
 
 type HookResponse struct {
-	ID         int64     `json:"id"`
-	HookID     int64     `json:"hookId"`
-	StatusCode int64     `json:"statusCode"`
-	Headers    string    `json:"headers"`
-	Body       []byte    `json:"body,omitempty"`
-	CreatedAt  time.Time `json:"createdAt"`
-	UpdatedAt  time.Time `json:"updatedAt"`
+	ID         int64             `json:"id"`
+	HookID     int64             `json:"hookId"`
+	StatusCode int64             `json:"statusCode"`
+	Headers    map[string]string `json:"headers"`
+	Body       []byte            `json:"body,omitempty"`
+	CreatedAt  time.Time         `json:"createdAt"`
+	UpdatedAt  time.Time         `json:"updatedAt"`
 }
 
 type CreateWebhookRequestParams struct {
@@ -44,4 +47,17 @@ type CreateWebhookRequestParams struct {
 	RemoteAddr  string
 	ContentType string
 	BodySize    int64
+}
+
+type UpsertHookResponseParams struct {
+	StatusCode int64
+	Headers    map[string]string
+	Body       []byte
+}
+
+func (p UpsertHookResponseParams) Validate() error {
+	if p.StatusCode < 100 || p.StatusCode > 599 {
+		return fmt.Errorf("statusCode must be between 100 and 599")
+	}
+	return nil
 }

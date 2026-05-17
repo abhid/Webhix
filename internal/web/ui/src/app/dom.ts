@@ -25,6 +25,8 @@ export function getElements() {
     tabContent: requireElement('tabContent', HTMLDivElement),
     toast: requireElement('toast', HTMLDivElement),
     copyButton: requireElement('copyButton', HTMLButtonElement),
+    curlButton: requireElement('curlButton', HTMLButtonElement),
+    replayButton: requireElement('replayButton', HTMLButtonElement),
     newEndpointButton: requireElement('newEndpointButton', HTMLButtonElement),
     loadTokenButton: requireElement('loadTokenButton', HTMLButtonElement),
     createEndpointButton: requireElement('createEndpointButton', HTMLButtonElement),

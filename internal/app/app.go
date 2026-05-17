@@ -2,8 +2,6 @@ package app
 
 import (
 	"context"
-	"crypto/rand"
-	"encoding/base64"
 	"fmt"
 	"io/fs"
 	"log/slog"
@@ -96,19 +94,11 @@ func (a *App) Start(ctx context.Context) error {
 }
 
 func resolveAuth(cfg *config.Config) (password, secretKey string, err error) {
-	password = cfg.Password
-	secretKey = cfg.SecretKey
-
-	if password == "" && secretKey == "" {
-		b := make([]byte, 16)
-		if _, err = rand.Read(b); err != nil {
-			return "", "", fmt.Errorf("generate password: %w", err)
-		}
-		password = base64.URLEncoding.EncodeToString(b)[:22]
-		slog.Warn("no auth configured — generated password for this session", "password", password)
+	if cfg.Password == "" && cfg.SecretKey == "" {
+		return "", "", fmt.Errorf("auth is required: set WEBHIX_PASSWORD or WEBHIX_SECRET_KEY")
 	}
 
-	return password, secretKey, nil
+	return cfg.Password, cfg.SecretKey, nil
 }
 
 func (a *App) Shutdown() error {
