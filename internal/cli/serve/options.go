@@ -13,6 +13,9 @@ type Options struct {
 	DBPath  string
 	BaseURL string
 
+	Password  string
+	SecretKey string
+
 	MaxBodySize    int
 	TrustedProxies []string
 }
@@ -28,6 +31,8 @@ func NewOptions(cfg *config.Config) Options {
 		opts.Addr = cfg.Addr
 		opts.DBPath = cfg.DBPath
 		opts.BaseURL = cfg.BaseURL
+		opts.Password = cfg.Password
+		opts.SecretKey = cfg.SecretKey
 		opts.TrustedProxies = cfg.TrustedProxies
 	}
 
@@ -51,5 +56,7 @@ func (o *Options) Apply(cfg *config.Config) {
 	cfg.Addr = o.Addr
 	cfg.DBPath = o.DBPath
 	cfg.BaseURL = o.BaseURL
+	cfg.Password = o.Password
+	cfg.SecretKey = o.SecretKey
 	cfg.TrustedProxies = o.TrustedProxies
 }

@@ -12,6 +12,9 @@ type Config struct {
 	BaseURL string `env:"WEBHIX_BASE_URL" env-default:"http://localhost:8080"`
 	DBPath  string `env:"WEBHIX_DB_PATH"  env-default:"./data"`
 
+	Password  string `env:"WEBHIX_PASSWORD"`
+	SecretKey string `env:"WEBHIX_SECRET_KEY"`
+
 	TrustedProxies []string `env:"WEBHIX_TRUSTED_PROXIES"`
 }
 
