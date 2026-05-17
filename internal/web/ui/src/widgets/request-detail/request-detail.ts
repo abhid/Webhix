@@ -9,7 +9,10 @@ import {
   methodClass,
   syntaxHighlightJSON,
 } from '../../shared/lib/format';
-import { fetchHookResponse, saveHookResponse } from '../../features/endpoint-session/api/endpoint-api';
+import {
+  fetchHookResponse,
+  saveHookResponse,
+} from '../../features/endpoint-session/api/endpoint-api';
 
 export function renderSelectedDetail(elements: Elements, state: AppState): void {
   const request = selectedRequest(state);
@@ -35,7 +38,12 @@ export function showPlaceholder(elements: Elements): void {
   elements.detailContent.classList.add('hidden');
 }
 
-function renderActiveTab(elements: Elements, request: WebhookRequest, tab: RequestTab, token: string | null): void {
+function renderActiveTab(
+  elements: Elements,
+  request: WebhookRequest,
+  tab: RequestTab,
+  token: string | null,
+): void {
   elements.tabContent.replaceChildren();
 
   switch (tab) {
