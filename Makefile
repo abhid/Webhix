@@ -9,10 +9,10 @@ GO ?= go
 GOLANGCI_LINT ?= $(TOOLS_DIR)/golangci-lint
 
 GOFLAGS ?=
-PKGS := ./...
+PKGS := $(shell $(GO) list -f '{{.Dir}}' ./... | grep -v '/node_modules/' | sed 's#^$(CURDIR)#.#')
 LDFLAGS ?= -s -w
 
-.PHONY: deps tidy tidy-check fmt fmt-check vet lint lint-install test test-race cover check ci build build-prod run clean
+.PHONY: deps tidy tidy-check fmt fmt-check vet lint lint-install test test-race cover check ci build build-prod run clean web-deps web-dev web-build web-check
 
 # Download Go module dependencies.
 deps:
@@ -53,6 +53,22 @@ lint-install:
 test:
 	$(GO) test $(GOFLAGS) $(PKGS)
 
+# Install frontend dependencies.
+web-deps:
+	npm ci
+
+# Run the frontend development server.
+web-dev:
+	npm run dev
+
+# Build frontend assets for Go embedding.
+web-build:
+	npm run build
+
+# Run frontend quality checks.
+web-check:
+	npm run check
+
 # Run tests with the race detector enabled.
 test-race:
 	$(GO) test -race $(GOFLAGS) $(PKGS)
@@ -64,18 +80,18 @@ cover:
 	$(GO) tool cover -html=$(COVER_DIR)/coverage.out -o $(COVER_DIR)/coverage.html
 
 # Run the standard local quality gate.
-check: tidy fmt vet lint test
+check: tidy fmt vet lint test web-check
 
 # Run the full CI-style pipeline.
-ci: deps tidy-check fmt-check vet lint-install lint test build-prod
+ci: deps web-deps tidy-check fmt-check vet lint-install lint test web-check build-prod
 
 # Build a local development binary.
-build:
+build: web-build
 	mkdir -p $(BUILD_DIR)
 	$(GO) build $(GOFLAGS) -o $(BUILD_DIR)/$(APP) $(MAIN)
 
 # Build a smaller production binary.
-build-prod:
+build-prod: web-build
 	mkdir -p $(BUILD_DIR)
 	$(GO) build $(GOFLAGS) -trimpath -ldflags "$(LDFLAGS)" -o $(BUILD_DIR)/$(APP) $(MAIN)
 

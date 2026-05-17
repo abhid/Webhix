@@ -1,1 +1,1 @@
-UI coming soon.
+Static UI build output is generated here by Vite.
