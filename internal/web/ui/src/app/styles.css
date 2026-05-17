@@ -423,6 +423,55 @@ header {
   padding: 5px 9px;
 }
 
+.settings-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 0;
+}
+
+.settings-form label {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.settings-input {
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  padding: 6px 10px;
+  font-size: 13px;
+  width: 120px;
+}
+
+.settings-textarea {
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  padding: 8px 10px;
+  font-size: 12px;
+  font-family: var(--mono);
+  resize: vertical;
+}
+
+.settings-save-btn {
+  align-self: flex-start;
+  background: var(--purple);
+  border: none;
+  border-radius: 6px;
+  color: #fff;
+  cursor: pointer;
+  font-size: 13px;
+  padding: 6px 16px;
+}
+
+.settings-save-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .curl-btn {
   border: 1px solid var(--border);
   border-radius: 6px;

@@ -19,6 +19,29 @@ export async function fetchRequests(token: string): Promise<WebhookRequest[]> {
   return json.body || [];
 }
 
+export interface HookResponse {
+  statusCode: number;
+  headers: Record<string, string>;
+  body: string;
+}
+
+export async function fetchHookResponse(token: string): Promise<HookResponse> {
+  const response = await fetch(`/api/endpoints/${token}/response`);
+  const json = (await response.json()) as ApiResponse<HookResponse>;
+  if (!json.success || !json.body) return { statusCode: 200, headers: {}, body: '' };
+  return json.body;
+}
+
+export async function saveHookResponse(token: string, data: HookResponse): Promise<void> {
+  const response = await fetch(`/api/endpoints/${token}/response`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  const json = (await response.json()) as ApiResponse<unknown>;
+  if (!json.success) throw new Error(json.error?.message || 'Failed to save');
+}
+
 export function connectEvents(
   token: string,
   handlers: {

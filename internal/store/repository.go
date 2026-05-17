@@ -3,6 +3,7 @@ package store
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"errors"
 
 	"github.com/GaIsBAX/Webhix/internal/domain"
@@ -75,6 +76,54 @@ func (r *HookRepository) ListWebhookRequests(ctx context.Context, hookID int64) 
 	}
 
 	return result, nil
+}
+
+func (r *HookRepository) GetHookResponse(ctx context.Context, hookID int64) (domain.HookResponse, error) {
+	row, err := r.q.GetHookResponseByHookID(ctx, hookID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return domain.HookResponse{StatusCode: 200, Headers: map[string]string{}}, nil
+		}
+		return domain.HookResponse{}, err
+	}
+
+	return toDomainHookResponse(row), nil
+}
+
+func (r *HookRepository) UpsertHookResponse(ctx context.Context, hookID int64, params domain.UpsertHookResponseParams) (domain.HookResponse, error) {
+	headersJSON, err := json.Marshal(params.Headers)
+	if err != nil {
+		return domain.HookResponse{}, err
+	}
+
+	row, err := r.q.UpsertHookResponse(ctx, sqlc.UpsertHookResponseParams{
+		HookID:     hookID,
+		StatusCode: params.StatusCode,
+		Headers:    string(headersJSON),
+		Body:       params.Body,
+	})
+	if err != nil {
+		return domain.HookResponse{}, err
+	}
+
+	return toDomainHookResponse(row), nil
+}
+
+func toDomainHookResponse(row sqlc.HookResponse) domain.HookResponse {
+	headers := map[string]string{}
+	if err := json.Unmarshal([]byte(row.Headers), &headers); err != nil {
+		headers = map[string]string{}
+	}
+
+	return domain.HookResponse{
+		ID:         row.ID,
+		HookID:     row.HookID,
+		StatusCode: row.StatusCode,
+		Headers:    headers,
+		Body:       row.Body,
+		CreatedAt:  row.CreatedAt,
+		UpdatedAt:  row.UpdatedAt,
+	}
 }
 
 func toDomainHook(hook sqlc.Hook) domain.Hook {

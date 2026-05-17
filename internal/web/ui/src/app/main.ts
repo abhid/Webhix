@@ -143,12 +143,12 @@ function replayRequest(): void {
   const request = selectedRequest(state);
   if (!request) return;
 
-  let headers: Record<string, string> = {};
+  const headers: Record<string, string> = {};
   if (request.headers) {
     try {
       const parsed = JSON.parse(request.headers) as Record<string, string | string[]>;
       for (const [key, value] of Object.entries(parsed)) {
-        headers[key] = Array.isArray(value) ? value[0] : value;
+        headers[key] = Array.isArray(value) ? (value[0] ?? '') : value;
       }
     } catch {
       // ignore
@@ -195,5 +195,11 @@ function toast(message: string): void {
 }
 
 function isRequestTab(value: string | undefined): value is RequestTab {
-  return value === 'headers' || value === 'body' || value === 'query' || value === 'info';
+  return (
+    value === 'headers' ||
+    value === 'body' ||
+    value === 'query' ||
+    value === 'info' ||
+    value === 'settings'
+  );
 }
