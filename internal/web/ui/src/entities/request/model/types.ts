@@ -1,7 +1,7 @@
 export type RequestTab = 'headers' | 'body' | 'query' | 'info' | 'settings';
 
 export interface WebhookRequest {
-  id: string;
+  id: number;
   method: string;
   path: string;
   receivedAt: string;

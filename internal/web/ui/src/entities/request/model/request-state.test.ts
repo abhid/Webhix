@@ -6,45 +6,41 @@ import { addRequests, createInitialState, resetForToken, selectRequest } from '.
 test('addRequests prepends live requests and ignores duplicate ids', () => {
   const state = createInitialState();
 
-  addRequests(state, [
-    { id: 'old', method: 'POST', path: '/old', receivedAt: '2026-05-16T10:00:00Z' },
-  ]);
+  addRequests(state, [{ id: 1, method: 'POST', path: '/old', receivedAt: '2026-05-16T10:00:00Z' }]);
   addRequests(
     state,
-    [{ id: 'new', method: 'POST', path: '/new', receivedAt: '2026-05-16T11:00:00Z' }],
+    [{ id: 2, method: 'POST', path: '/new', receivedAt: '2026-05-16T11:00:00Z' }],
     { prepend: true },
   );
   addRequests(
     state,
-    [{ id: 'new', method: 'POST', path: '/new', receivedAt: '2026-05-16T11:00:00Z' }],
+    [{ id: 2, method: 'POST', path: '/new', receivedAt: '2026-05-16T11:00:00Z' }],
     { prepend: true },
   );
 
   assert.deepEqual(
     state.requests.map((request) => request.id),
-    ['new', 'old'],
+    [2, 1],
   );
 });
 
 test('selectRequest stores request id instead of list index', () => {
   const state = createInitialState();
   addRequests(state, [
-    { id: 'first', method: 'POST', path: '/first', receivedAt: '2026-05-16T10:00:00Z' },
-    { id: 'second', method: 'POST', path: '/second', receivedAt: '2026-05-16T11:00:00Z' },
+    { id: 1, method: 'POST', path: '/first', receivedAt: '2026-05-16T10:00:00Z' },
+    { id: 2, method: 'POST', path: '/second', receivedAt: '2026-05-16T11:00:00Z' },
   ]);
 
-  selectRequest(state, 'second');
+  selectRequest(state, '2');
 
-  assert.equal(state.selectedRequestId, 'second');
+  assert.equal(state.selectedRequestId, '2');
 });
 
 test('resetForToken clears request-specific state and keeps the active tab', () => {
   const state = createInitialState();
   state.activeTab = 'body';
-  addRequests(state, [
-    { id: 'old', method: 'POST', path: '/old', receivedAt: '2026-05-16T10:00:00Z' },
-  ]);
-  selectRequest(state, 'old');
+  addRequests(state, [{ id: 1, method: 'POST', path: '/old', receivedAt: '2026-05-16T10:00:00Z' }]);
+  selectRequest(state, '1');
 
   resetForToken(state, 'token-123');
 

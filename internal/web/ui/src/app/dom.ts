@@ -30,6 +30,8 @@ export function getElements() {
     newEndpointButton: requireElement('newEndpointButton', HTMLButtonElement),
     loadTokenButton: requireElement('loadTokenButton', HTMLButtonElement),
     createEndpointButton: requireElement('createEndpointButton', HTMLButtonElement),
+    searchInput: requireElement('searchInput', HTMLInputElement),
+    methodFilterButton: requireElement('methodFilter', HTMLButtonElement),
     tabButtons: Array.from(document.querySelectorAll<HTMLButtonElement>('.tab[data-tab]')),
   };
 }

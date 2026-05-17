@@ -1,15 +1,17 @@
 import type { Elements } from '../../app/dom';
-import type { AppState } from '../../entities/request/model/request-state';
+import { filteredRequests, type AppState } from '../../entities/request/model/request-state';
 import { formatRelativeTime, methodClass } from '../../shared/lib/format';
 
 export function renderRequestList(
   elements: Elements,
   state: AppState,
-  options: { highlightRequestId?: string; scrollTop?: boolean } = {},
+  options: { highlightRequestId?: number; scrollTop?: boolean } = {},
 ): void {
+  const visible = filteredRequests(state);
+
   elements.countBadge.textContent = String(state.requests.length);
 
-  if (state.requests.length === 0) {
+  if (visible.length === 0) {
     elements.requestList.replaceChildren();
     elements.requestList.appendChild(elements.emptyState);
     return;
@@ -18,11 +20,11 @@ export function renderRequestList(
   elements.emptyState.remove();
   elements.requestList.replaceChildren();
 
-  for (const request of state.requests) {
+  for (const request of visible) {
     const item = document.createElement('button');
     item.type = 'button';
-    item.className = `request-item${request.id === state.selectedRequestId ? ' active' : ''}`;
-    item.dataset.requestId = request.id;
+    item.className = `request-item${String(request.id) === state.selectedRequestId ? ' active' : ''}`;
+    item.dataset.requestId = String(request.id);
 
     const method = document.createElement('span');
     method.className = `method-badge ${methodClass(request.method)}`;
