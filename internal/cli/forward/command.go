@@ -3,11 +3,13 @@ package forward
 import (
 	"context"
 
+	"github.com/GaIsBAX/Webhix/internal/config"
 	"github.com/spf13/cobra"
 )
 
-func NewCommand(ctx context.Context) *cobra.Command {
+func NewCommand(ctx context.Context, cfg *config.Config) *cobra.Command {
 	opts := DefaultOptions()
+	opts.AuthToken = cfg.SecretKey
 
 	cmd := &cobra.Command{
 		Use:   "forward <token>",

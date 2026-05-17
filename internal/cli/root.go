@@ -19,7 +19,7 @@ func NewRootCommand(ctx context.Context, cfg *config.Config) *cobra.Command {
 	addGroup(cmd, serve.ServeGroup, serve.ServeTitle)
 
 	cmd.AddCommand(serve.NewCommand(ctx, cfg))
-	cmd.AddCommand(forward.NewCommand(ctx))
+	cmd.AddCommand(forward.NewCommand(ctx, cfg))
 
 	return cmd
 }

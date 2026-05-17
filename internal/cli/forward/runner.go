@@ -69,9 +69,14 @@ func stream(ctx context.Context, opts Options, sseURL, targetURL string) error {
 		return fmt.Errorf("server returned %d", resp.StatusCode)
 	}
 
-	scanner := bufio.NewScanner(resp.Body)
-	for scanner.Scan() {
-		line := scanner.Text()
+	reader := bufio.NewReader(resp.Body)
+	for {
+		line, err := reader.ReadString('\n')
+		if err != nil {
+			return err
+		}
+
+		line = strings.TrimRight(line, "\r\n")
 		if !strings.HasPrefix(line, "data: ") {
 			continue
 		}
@@ -84,8 +89,6 @@ func stream(ctx context.Context, opts Options, sseURL, targetURL string) error {
 
 		go forward(ctx, opts, event, targetURL)
 	}
-
-	return scanner.Err()
 }
 
 func forward(ctx context.Context, opts Options, event webhookEvent, targetURL string) {
