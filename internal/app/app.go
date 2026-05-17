@@ -2,6 +2,8 @@ package app
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/base64"
 	"fmt"
 	"io/fs"
 	"log/slog"
@@ -48,7 +50,14 @@ func New(ctx context.Context, cfg *config.Config) (*App, error) {
 	mux.Handle("/ui/", http.StripPrefix("/ui/", staticFS))
 	mux.Handle("/", staticFS)
 
+	password, secretKey, err := resolveAuth(cfg)
+	if err != nil {
+		return nil, fmt.Errorf("auth setup: %w", err)
+	}
+
 	handler := http.Handler(mux)
+	handler = middleware.NewAuth(password, secretKey).Protect(handler)
+
 	if len(cfg.TrustedProxies) > 0 {
 		trustedProxies := middleware.NewTrustedProxies(cfg.TrustedProxies)
 		if trustedProxies == nil {
@@ -81,6 +90,22 @@ func (a *App) Start(ctx context.Context) error {
 	case <-ctx.Done():
 		return a.Shutdown()
 	}
+}
+
+func resolveAuth(cfg *config.Config) (password, secretKey string, err error) {
+	password = cfg.Password
+	secretKey = cfg.SecretKey
+
+	if password == "" && secretKey == "" {
+		b := make([]byte, 16)
+		if _, err = rand.Read(b); err != nil {
+			return "", "", fmt.Errorf("generate password: %w", err)
+		}
+		password = base64.URLEncoding.EncodeToString(b)[:22]
+		slog.Warn("no auth configured — generated password for this session", "password", password)
+	}
+
+	return password, secretKey, nil
 }
 
 func (a *App) Shutdown() error {
