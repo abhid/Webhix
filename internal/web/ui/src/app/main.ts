@@ -148,7 +148,7 @@ function replayRequest(): void {
     try {
       const parsed = JSON.parse(request.headers) as Record<string, string | string[]>;
       for (const [key, value] of Object.entries(parsed)) {
-        headers[key] = Array.isArray(value) ? value[0] : value;
+        headers[key] = Array.isArray(value) ? (value[0] ?? '') : value;
       }
     } catch {
       // ignore
