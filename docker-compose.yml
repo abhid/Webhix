@@ -1,0 +1,10 @@
+services:
+  webhix:
+    image: ghcr.io/gaisbax/webhix:latest
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./data:/data
+    environment:
+      WEBHIX_BASE_URL: http://localhost:8080
+      WEBHIX_PASSWORD: changeme
