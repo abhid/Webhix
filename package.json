@@ -1,0 +1,26 @@
+{
+  "name": "webhix",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1",
+    "build": "vite build",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint --cache --cache-location .cache/eslint/ \"internal/web/ui/src/**/*.ts\" vite.config.ts eslint.config.js",
+    "format": "prettier --write package.json tsconfig.json eslint.config.js vite.config.ts \"internal/web/ui/**/*.{html,css,ts}\"",
+    "format:check": "prettier --check package.json tsconfig.json eslint.config.js vite.config.ts \"internal/web/ui/**/*.{html,css,ts}\"",
+    "test": "find internal/web/ui/src -name '*.test.ts' -print0 | xargs -0 node --import tsx --test",
+    "check": "npm run typecheck && npm run lint && npm run format:check && npm test"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.1",
+    "@types/node": "^24.10.1",
+    "eslint": "^9.39.1",
+    "globals": "^16.5.0",
+    "prettier": "^3.6.2",
+    "tsx": "^4.20.6",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.46.3",
+    "vite": "^7.2.4"
+  }
+}

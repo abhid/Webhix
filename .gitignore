@@ -19,6 +19,10 @@ config/.env
 /bin
 config.yml
 
+node_modules
+internal/web/static/*
+!internal/web/static/.gitkeep
+
 /cache
 .cache
 /data
