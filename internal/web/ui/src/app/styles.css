@@ -423,6 +423,22 @@ header {
   padding: 5px 9px;
 }
 
+.curl-btn {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: rgba(148, 163, 184, 0.08);
+  color: var(--muted);
+  padding: 3px 8px;
+  font-size: 11px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.curl-btn:hover {
+  border-color: var(--purple);
+  color: var(--text);
+}
+
 .stats {
   display: flex;
   flex: 1 1 280px;

@@ -13,9 +13,11 @@ import {
   createInitialState,
   resetForToken,
   selectRequest,
+  selectedRequest,
   setActiveTab,
 } from '../entities/request/model/request-state';
 import type { RequestTab } from '../entities/request/model/types';
+import { buildCurlCommand } from '../shared/lib/format';
 
 const state = createInitialState();
 const elements = getElements();
@@ -36,6 +38,8 @@ function init(): void {
     if (event.key === 'Enter') loadToken();
   });
   elements.copyButton.addEventListener('click', copyURL);
+  elements.curlButton.addEventListener('click', copyCurl);
+  elements.replayButton.addEventListener('click', replayRequest);
   elements.newEndpointButton.addEventListener('click', showOverlay);
   elements.loadTokenButton.addEventListener('click', loadToken);
   elements.createEndpointButton.addEventListener('click', createNewEndpoint);
@@ -133,6 +137,46 @@ function handleRequestClick(event: MouseEvent): void {
 function switchTab(tab: RequestTab): void {
   setActiveTab(state, tab);
   renderSelectedDetail(elements, state);
+}
+
+function replayRequest(): void {
+  const request = selectedRequest(state);
+  if (!request) return;
+
+  let headers: Record<string, string> = {};
+  if (request.headers) {
+    try {
+      const parsed = JSON.parse(request.headers) as Record<string, string | string[]>;
+      for (const [key, value] of Object.entries(parsed)) {
+        headers[key] = Array.isArray(value) ? value[0] : value;
+      }
+    } catch {
+      // ignore
+    }
+  }
+
+  let body: BodyInit | undefined;
+  if (request.body) {
+    body = typeof request.body === 'string' ? request.body : JSON.stringify(request.body);
+  }
+
+  elements.replayButton.disabled = true;
+  fetch(`${location.origin}${request.path}`, { method: request.method, headers, body })
+    .then(() => toast('Replayed!'))
+    .catch(() => toast('Replay failed'))
+    .finally(() => {
+      elements.replayButton.disabled = false;
+    });
+}
+
+function copyCurl(): void {
+  const request = selectedRequest(state);
+  if (!request) return;
+  const curl = buildCurlCommand(request.method, request.path, request.headers, request.body);
+  navigator.clipboard
+    .writeText(curl)
+    .then(() => toast('Copied as curl!'))
+    .catch(() => toast('Copy failed'));
 }
 
 function copyURL(): void {

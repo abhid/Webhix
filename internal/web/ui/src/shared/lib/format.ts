@@ -54,6 +54,49 @@ export function looksLikeJSON(value: string | undefined): boolean {
   );
 }
 
+export function buildCurlCommand(
+  method: string,
+  path: string,
+  headers: string | undefined,
+  body: unknown,
+): string {
+  const url = `${location.origin}${path}`;
+  const parts: string[] = [`curl -X ${method} '${url}'`];
+
+  const skipHeaders = new Set(['content-length', 'host', 'connection', 'transfer-encoding']);
+
+  if (headers) {
+    try {
+      const parsed = JSON.parse(headers) as Record<string, string | string[]>;
+      for (const [key, value] of Object.entries(parsed)) {
+        if (skipHeaders.has(key.toLowerCase())) continue;
+        const values = Array.isArray(value) ? value : [value];
+        for (const v of values) {
+          parts.push(`  -H '${key}: ${v.replace(/'/g, "'\\''")}'`);
+        }
+      }
+    } catch {
+      // ignore unparseable headers
+    }
+  }
+
+  if (body) {
+    let bodyStr = typeof body === 'string' ? body : JSON.stringify(body);
+    if (isBase64(bodyStr)) {
+      try {
+        bodyStr = atob(bodyStr);
+      } catch {
+        // keep original
+      }
+    }
+    if (bodyStr.trim()) {
+      parts.push(`  --data '${bodyStr.replace(/'/g, "'\\''")}'`);
+    }
+  }
+
+  return parts.join(' \\\n');
+}
+
 export function syntaxHighlightJSON(json: string): string {
   return json.replace(
     /("(\\u[a-fA-F0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+-]?\d+)?)/g,
