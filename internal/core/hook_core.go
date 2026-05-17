@@ -47,7 +47,10 @@ func (s *HookService) ReceiveWebhook(ctx context.Context, token string, params d
 		return domain.WebhookRequest{}, domain.HookResponse{}, err
 	}
 
-	resp, _ := s.repo.GetHookResponse(ctx, hook.ID)
+	resp, err := s.repo.GetHookResponse(ctx, hook.ID)
+	if err != nil {
+		return domain.WebhookRequest{}, domain.HookResponse{}, err
+	}
 
 	return req, resp, nil
 }

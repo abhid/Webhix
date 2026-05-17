@@ -111,7 +111,9 @@ func (r *HookRepository) UpsertHookResponse(ctx context.Context, hookID int64, p
 
 func toDomainHookResponse(row sqlc.HookResponse) domain.HookResponse {
 	headers := map[string]string{}
-	_ = json.Unmarshal([]byte(row.Headers), &headers)
+	if err := json.Unmarshal([]byte(row.Headers), &headers); err != nil {
+		headers = map[string]string{}
+	}
 
 	return domain.HookResponse{
 		ID:         row.ID,
