@@ -11,6 +11,8 @@ type Config struct {
 	Addr    string `env:"WEBHIX_ADDR"     env-default:":8080"`
 	BaseURL string `env:"WEBHIX_BASE_URL" env-default:"http://localhost:8080"`
 	DBPath  string `env:"WEBHIX_DB_PATH"  env-default:"./data"`
+
+	TrustedProxies []string `env:"WEBHIX_TRUSTED_PROXIES"`
 }
 
 func LoadConfig() (*Config, error) {

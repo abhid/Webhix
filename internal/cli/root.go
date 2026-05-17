@@ -1,11 +1,14 @@
 package cli
 
 import (
+	"context"
+
 	"github.com/GaIsBAX/Webhix/internal/cli/serve"
+	"github.com/GaIsBAX/Webhix/internal/config"
 	"github.com/spf13/cobra"
 )
 
-func NewRootCommand() *cobra.Command {
+func NewRootCommand(ctx context.Context, cfg *config.Config) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:           "webhix",
 		SilenceUsage:  true,
@@ -14,7 +17,7 @@ func NewRootCommand() *cobra.Command {
 
 	addGroup(cmd, serve.ServeGroup, serve.ServeTitle)
 
-	cmd.AddCommand(serve.NewCommand())
+	cmd.AddCommand(serve.NewCommand(ctx, cfg))
 
 	return cmd
 }

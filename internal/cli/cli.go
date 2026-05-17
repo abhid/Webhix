@@ -1,12 +1,18 @@
 package cli
 
-func Run(args []string) int {
-	root := NewRootCommand()
+import (
+	"context"
+
+	"github.com/GaIsBAX/Webhix/internal/config"
+)
+
+func Run(ctx context.Context, cfg *config.Config, args []string) error {
+	root := NewRootCommand(ctx, cfg)
 	root.SetArgs(args)
 
 	if err := root.Execute(); err != nil {
-		return 1
+		return err
 	}
 
-	return 0
+	return nil
 }

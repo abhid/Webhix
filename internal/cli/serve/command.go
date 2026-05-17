@@ -1,14 +1,21 @@
 package serve
 
-import "github.com/spf13/cobra"
+import (
+	"context"
+	"log/slog"
+
+	"github.com/GaIsBAX/Webhix/internal/app"
+	"github.com/GaIsBAX/Webhix/internal/config"
+	"github.com/spf13/cobra"
+)
 
 const (
 	ServeGroup = "Serve"
 	ServeTitle = ""
 )
 
-func NewCommand() *cobra.Command {
-	opts := DefaultOptions()
+func NewCommand(ctx context.Context, cfg *config.Config) *cobra.Command {
+	opts := NewOptions(cfg)
 
 	cmd := &cobra.Command{
 		Use:   "serve",
@@ -18,14 +25,28 @@ func NewCommand() *cobra.Command {
 			if err := opts.Validate(); err != nil {
 				return err
 			}
+			opts.Apply(cfg)
 
-			return run(opts)
+			app, err := app.New(ctx, cfg)
+			if err != nil {
+				slog.Error("init app", "err", err)
+				return err
+			}
+
+			return run(ctx, app)
 		},
 	}
+
+	RegisterFlags(cmd, &opts)
 
 	return cmd
 }
 
-func run(opts *Options) error {
-	panic("impl me")
+func run(ctx context.Context, app *app.App) error {
+	if err := app.Start(ctx); err != nil {
+		slog.Error("server", "err", err)
+		return err
+	}
+
+	return nil
 }
