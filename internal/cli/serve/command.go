@@ -32,20 +32,11 @@ func NewCommand(ctx context.Context, cfg *config.Config) *cobra.Command {
 				return err
 			}
 
-			return run(ctx, app)
+			return run(ctx, app, opts)
 		},
 	}
 
 	RegisterFlags(cmd, cfg, &opts)
 
 	return cmd
-}
-
-func run(ctx context.Context, app *app.App) error {
-	if err := app.Start(ctx); err != nil {
-		slog.Error("server", "err", err)
-		return err
-	}
-
-	return nil
 }

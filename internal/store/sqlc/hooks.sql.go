@@ -91,6 +91,15 @@ func (q *Queries) CreateWebhookRequest(ctx context.Context, arg CreateWebhookReq
 	return i, err
 }
 
+const deleteWebhookRequestsOlderThan = `-- name: DeleteWebhookRequestsOlderThan :execresult
+DELETE FROM hooks
+WHERE created_at < datetime('now', ?)
+`
+
+func (q *Queries) DeleteWebhookRequestsOlderThan(ctx context.Context, datetime interface{}) (sql.Result, error) {
+	return q.db.ExecContext(ctx, deleteWebhookRequestsOlderThan, datetime)
+}
+
 const getHookByToken = `-- name: GetHookByToken :one
 SELECT id, token, name, created_at, updated_at
 FROM hooks
@@ -159,6 +168,41 @@ func (q *Queries) ListWebhookRequestsByHookID(ctx context.Context, hookID int64)
 			&i.ContentType,
 			&i.BodySize,
 			&i.ReceivedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listWebhookRequestsByTime = `-- name: ListWebhookRequestsByTime :many
+SELECT id, token, name, created_at, updated_at
+FROM hooks
+WHERE created_at <= datetime('now', ?)
+`
+
+func (q *Queries) ListWebhookRequestsByTime(ctx context.Context, datetime interface{}) ([]Hook, error) {
+	rows, err := q.db.QueryContext(ctx, listWebhookRequestsByTime, datetime)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Hook
+	for rows.Next() {
+		var i Hook
+		if err := rows.Scan(
+			&i.ID,
+			&i.Token,
+			&i.Name,
+			&i.CreatedAt,
+			&i.UpdatedAt,
 		); err != nil {
 			return nil, err
 		}

@@ -29,6 +29,15 @@ FROM webhook_requests
 WHERE hook_id = ?
 ORDER BY received_at DESC, id DESC;
 
+-- name: ListWebhookRequestsByTime :many
+SELECT id, token, name, created_at, updated_at
+FROM hooks
+WHERE created_at <= datetime('now', ?);
+
+-- name: DeleteWebhookRequestsOlderThan :execresult
+DELETE FROM hooks
+WHERE created_at < datetime('now', ?);
+
 -- name: UpsertHookResponse :one
 INSERT INTO hook_responses (hook_id, status_code, headers, body)
 VALUES (?, ?, ?, ?)
