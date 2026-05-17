@@ -33,3 +33,5 @@ internal/web/static/*
 /upload
 
 /logs/*.jsonl
+
+memory/
