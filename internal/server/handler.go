@@ -13,7 +13,7 @@ import (
 	"github.com/GaIsBAX/Webhix/internal/hub"
 )
 
-const maxBodySize = 5 << 20 // 5MB
+const DefaultMaxBodySize int64 = 5 << 20 // 5MB
 
 type HookService interface {
 	CreateHook(ctx context.Context, token string) (domain.Hook, error)
@@ -21,19 +21,29 @@ type HookService interface {
 	ListWebhookRequests(ctx context.Context, token string) ([]domain.WebhookRequest, error)
 }
 
+type HookHandlerOptions struct {
+	BaseURL     string
+	MaxBodySize int64
+}
+
 type HookHandler struct {
 	mux     *http.ServeMux
 	service HookService
-	baseURL string
 	hub     *hub.Hub
+
+	opts HookHandlerOptions
 }
 
-func NewHookHandler(mux *http.ServeMux, srv HookService, baseURL string, hub *hub.Hub) *HookHandler {
+func NewHookHandler(mux *http.ServeMux, srv HookService, hub *hub.Hub, opts HookHandlerOptions) *HookHandler {
+	if opts.MaxBodySize <= 0 {
+		opts.MaxBodySize = DefaultMaxBodySize
+	}
+
 	return &HookHandler{
 		mux:     mux,
 		service: srv,
-		baseURL: baseURL,
 		hub:     hub,
+		opts:    opts,
 	}
 }
 
@@ -63,7 +73,7 @@ func (h *HookHandler) CreateEndpoint(w http.ResponseWriter, r *http.Request) {
 		ID:    hook.ID,
 		Token: hook.Token,
 		Name:  hook.Name,
-		URL:   h.baseURL + "/r/" + hook.Token,
+		URL:   h.opts.BaseURL + "/r/" + hook.Token,
 	})
 	if err != nil {
 		slog.Error("marshal endpoint", "err", err)
@@ -84,14 +94,14 @@ func (h *HookHandler) ReceiveWebhook(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	r.Body = http.MaxBytesReader(w, r.Body, maxBodySize)
+	r.Body = http.MaxBytesReader(w, r.Body, h.opts.MaxBodySize)
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		var maxBytesErr *http.MaxBytesError
 		if errors.As(err, &maxBytesErr) {
 			SendError(w, http.StatusRequestEntityTooLarge, WithDetails(ErrPayloadTooLarge, ErrorDetailContract{
 				Field:   "body",
-				Message: "body exceeds 5MB limit",
+				Message: fmt.Sprintf("body exceeds %d bytes limit", h.opts.MaxBodySize),
 			}))
 			return
 		}

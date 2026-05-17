@@ -12,6 +12,8 @@ type Config struct {
 	BaseURL string `env:"WEBHIX_BASE_URL" env-default:"http://localhost:8080"`
 	DBPath  string `env:"WEBHIX_DB_PATH"  env-default:"./data"`
 
+	MaxBodySize int64 `env:"WEBHIX_MAX_BODY_SIZE" env-default:"5242880"`
+
 	Password  string `env:"WEBHIX_PASSWORD"`
 	SecretKey string `env:"WEBHIX_SECRET_KEY"`
 
