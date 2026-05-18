@@ -40,12 +40,12 @@ func print(w io.Writer, info domain.VersionInfo, output string) error {
 	case outputJSON:
 		encoder := json.NewEncoder(w)
 		return encoder.Encode(info)
-	
+
 	case outputYAML:
 		encoder := yaml.NewEncoder(w)
 		defer encoder.Close()
 		return encoder.Encode(info)
-	
+
 	default:
 		_, err := fmt.Fprintf(
 			w,
