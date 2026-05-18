@@ -7,7 +7,7 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/GaIsBAX/Webhix/internal/cli"
+	"github.com/GaIsBAX/Webhix/internal/app"
 	"github.com/GaIsBAX/Webhix/internal/config"
 	_ "github.com/GaIsBAX/Webhix/pkg"
 )
@@ -26,7 +26,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err := cli.Run(ctx, cfg, os.Args[1:]); err != nil {
+	if err := app.Start(ctx, cfg, os.Args[1:]); err != nil {
 		slog.Error("app run", "err", err)
 		os.Exit(1)
 	}

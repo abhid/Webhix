@@ -1,6 +1,7 @@
 package domain
 
 import (
+	"context"
 	"fmt"
 	"time"
 )
@@ -54,6 +55,13 @@ type UpsertHookResponseParams struct {
 	Headers    map[string]string
 	Body       []byte
 }
+
+type ServeRunOptions struct {
+	Retention time.Duration
+	ReadOnly  bool
+}
+
+type ServeStartFunc func(context.Context) error
 
 func (p UpsertHookResponseParams) Validate() error {
 	if p.StatusCode < 100 || p.StatusCode > 599 {

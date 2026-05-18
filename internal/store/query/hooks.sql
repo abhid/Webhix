@@ -8,6 +8,10 @@ SELECT id, token, name, created_at, updated_at
 FROM hooks
 WHERE token = ?;
 
+-- name: GetCountRequests :one
+SELECT COUNT(*)
+FROM webhook_requests;
+
 -- name: CreateWebhookRequest :one
 INSERT INTO webhook_requests (
     hook_id,
@@ -28,6 +32,29 @@ SELECT id, hook_id, method, path, query, headers, body, remote_addr, content_typ
 FROM webhook_requests
 WHERE hook_id = ?
 ORDER BY received_at DESC, id DESC;
+
+-- name: ListWebhookRequestsByTime :many
+SELECT
+    wr.id,
+    wr.hook_id,
+    h.token,
+    h.name,
+    wr.method,
+    wr.path,
+    wr.query,
+    wr.headers,
+    wr.remote_addr,
+    wr.content_type,
+    wr.body_size,
+    wr.received_at
+FROM webhook_requests wr
+JOIN hooks h ON h.id = wr.hook_id
+WHERE wr.received_at <= datetime('now', ?)
+ORDER BY wr.received_at DESC;
+
+-- name: DeleteWebhookRequestsOlderThan :execresult
+DELETE FROM webhook_requests
+WHERE received_at < datetime('now', ?);
 
 -- name: UpsertHookResponse :one
 INSERT INTO hook_responses (hook_id, status_code, headers, body)

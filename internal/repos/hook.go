@@ -1,4 +1,4 @@
-package store
+package repos
 
 import (
 	"context"

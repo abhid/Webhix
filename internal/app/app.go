@@ -2,121 +2,87 @@ package app
 
 import (
 	"context"
-	"fmt"
-	"io/fs"
 	"log/slog"
 	"net/http"
 	"time"
 
 	"github.com/GaIsBAX/Webhix/internal/config"
-	"github.com/GaIsBAX/Webhix/internal/core"
 	"github.com/GaIsBAX/Webhix/internal/hub"
-	"github.com/GaIsBAX/Webhix/internal/server"
-	"github.com/GaIsBAX/Webhix/internal/server/middleware"
-	"github.com/GaIsBAX/Webhix/internal/store"
-	"github.com/GaIsBAX/Webhix/internal/web"
 )
 
+const shutdownTimeout = 10 * time.Second
+
 type App struct {
-	srv  *http.Server
-	cfg  *config.Config
-	deps *Deps
-	hub  *hub.Hub
+	server   *http.Server
+	config   *config.Config
+	deps     *dependencies
+	events   *hub.Hub
+	services *services
 }
 
 func New(ctx context.Context, cfg *config.Config) (*App, error) {
-	mux := http.NewServeMux()
-
-	deps, err := NewDeps(ctx, cfg)
+	deps, err := newDependencies(ctx, cfg)
 	if err != nil {
 		return nil, err
 	}
 
-	eventHub := hub.New()
+	services := newServices(deps.repositories)
+	events := hub.New()
 
-	hookRepository := store.NewHookRepository(deps.DB.DB)
-	hookService := core.NewHookService(hookRepository)
-	hookHandler := server.NewHookHandler(mux, hookService, eventHub, server.HookHandlerOptions{
-		BaseURL:     cfg.BaseURL,
-		MaxBodySize: cfg.MaxBodySize,
-	})
-
-	hookHandler.RegisterRoutes()
-
-	staticSub, err := fs.Sub(web.Static, "static")
+	mux, err := newMux(cfg, services, events)
 	if err != nil {
 		return nil, err
 	}
-	staticFS := http.FileServer(http.FS(staticSub))
-	mux.Handle("/ui/", http.StripPrefix("/ui/", staticFS))
-	mux.Handle("/", staticFS)
 
-	password, secretKey, err := resolveAuth(cfg)
+	handler, err := newHTTPHandler(cfg, mux)
 	if err != nil {
-		return nil, fmt.Errorf("auth setup: %w", err)
-	}
-
-	handler := http.Handler(mux)
-	handler = middleware.NewAuth(password, secretKey).Protect(handler)
-
-	if len(cfg.TrustedProxies) > 0 {
-		trustedProxies := middleware.NewTrustedProxies(cfg.TrustedProxies)
-		if trustedProxies == nil {
-			return nil, fmt.Errorf("invalid trusted proxies")
-		}
-
-		handler = trustedProxies.BehindProxy(handler)
+		return nil, err
 	}
 
 	return &App{
-		srv:  &http.Server{Addr: cfg.Addr, Handler: handler, ReadHeaderTimeout: 5 * time.Second},
-		cfg:  cfg,
-		deps: deps,
-		hub:  eventHub,
+		server:   newHTTPServer(cfg, handler),
+		config:   cfg,
+		deps:     deps,
+		events:   events,
+		services: services,
 	}, nil
 }
 
 func (a *App) Start(ctx context.Context) error {
-	errCh := make(chan error, 1)
+	serverErr := make(chan error, 1)
 	go func() {
-		slog.Info("webhix started", "addr", a.cfg.Addr, "base_url", a.cfg.BaseURL)
-		if err := a.srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			errCh <- err
+		slog.Info("webhix started", "addr", a.config.Addr, "base_url", a.config.BaseURL)
+		if err := a.server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			serverErr <- err
 		}
 	}()
 
 	select {
-	case err := <-errCh:
+	case err := <-serverErr:
 		return err
+
 	case <-ctx.Done():
-		return a.Shutdown()
+		return a.Shutdown(ctx)
 	}
 }
 
-func resolveAuth(cfg *config.Config) (password, secretKey string, err error) {
-	if cfg.Password == "" && cfg.SecretKey == "" {
-		return "", "", fmt.Errorf("auth is required: set WEBHIX_PASSWORD or WEBHIX_SECRET_KEY")
-	}
-
-	return cfg.Password, cfg.SecretKey, nil
-}
-
-func (a *App) Shutdown() error {
+func (a *App) Shutdown(ctx context.Context) error {
 	slog.Info("shutting down")
-	a.hub.Close()
+	a.events.Close()
 
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	shutdownCtx, cancel := context.WithTimeout(ctx, shutdownTimeout)
 	defer cancel()
 
-	if err := a.srv.Shutdown(ctx); err != nil {
+	if err := a.server.Shutdown(shutdownCtx); err != nil {
 		slog.Error("graceful shutdown failed, forcing close", "err", err)
-		if closeErr := a.srv.Close(); closeErr != nil {
+		if closeErr := a.server.Close(); closeErr != nil {
 			slog.Error("server close failed", "err", closeErr)
 		}
 	}
 
-	if err := a.deps.teardownInfrastructure(); err != nil {
+	if err := a.deps.close(); err != nil {
 		slog.Error("teardown error", "err", err)
+		return err
 	}
 
 	return nil

@@ -18,6 +18,8 @@ type Config struct {
 	SecretKey string `env:"WEBHIX_SECRET_KEY"`
 
 	TrustedProxies []string `env:"WEBHIX_TRUSTED_PROXIES"`
+	MaxRequests    int64    `env:"MAX_REQUESTS" env-default:"10000"`
+	ReadOnly       bool     `env:"WEBHIX_READONLY"`
 }
 
 func LoadConfig() (*Config, error) {

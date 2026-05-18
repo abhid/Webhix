@@ -4,14 +4,19 @@ import (
 	"fmt"
 	"net/url"
 	"strings"
+	"time"
 
 	"github.com/GaIsBAX/Webhix/internal/config"
 )
 
-type Options struct{}
+type Options struct {
+	Retention time.Duration
+}
 
 func DefaultOptions() Options {
-	return Options{}
+	return Options{
+		Retention: time.Hour * 24,
+	}
 }
 
 func (o *Options) Validate(cfg *config.Config) error {

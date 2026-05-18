@@ -8,6 +8,7 @@ package sqlc
 import (
 	"context"
 	"database/sql"
+	"time"
 )
 
 const createHook = `-- name: CreateHook :one
@@ -91,6 +92,27 @@ func (q *Queries) CreateWebhookRequest(ctx context.Context, arg CreateWebhookReq
 	return i, err
 }
 
+const deleteWebhookRequestsOlderThan = `-- name: DeleteWebhookRequestsOlderThan :execresult
+DELETE FROM webhook_requests
+WHERE received_at < datetime('now', ?)
+`
+
+func (q *Queries) DeleteWebhookRequestsOlderThan(ctx context.Context, datetime interface{}) (sql.Result, error) {
+	return q.db.ExecContext(ctx, deleteWebhookRequestsOlderThan, datetime)
+}
+
+const getCountRequests = `-- name: GetCountRequests :one
+SELECT COUNT(*)
+FROM webhook_requests
+`
+
+func (q *Queries) GetCountRequests(ctx context.Context) (int64, error) {
+	row := q.db.QueryRowContext(ctx, getCountRequests)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const getHookByToken = `-- name: GetHookByToken :one
 SELECT id, token, name, created_at, updated_at
 FROM hooks
@@ -155,6 +177,77 @@ func (q *Queries) ListWebhookRequestsByHookID(ctx context.Context, hookID int64)
 			&i.Query,
 			&i.Headers,
 			&i.Body,
+			&i.RemoteAddr,
+			&i.ContentType,
+			&i.BodySize,
+			&i.ReceivedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listWebhookRequestsByTime = `-- name: ListWebhookRequestsByTime :many
+SELECT
+    wr.id,
+    wr.hook_id,
+    h.token,
+    h.name,
+    wr.method,
+    wr.path,
+    wr.query,
+    wr.headers,
+    wr.remote_addr,
+    wr.content_type,
+    wr.body_size,
+    wr.received_at
+FROM webhook_requests wr
+JOIN hooks h ON h.id = wr.hook_id
+WHERE wr.received_at <= datetime('now', ?)
+ORDER BY wr.received_at DESC
+`
+
+type ListWebhookRequestsByTimeRow struct {
+	ID          int64          `json:"id"`
+	HookID      int64          `json:"hook_id"`
+	Token       string         `json:"token"`
+	Name        sql.NullString `json:"name"`
+	Method      string         `json:"method"`
+	Path        string         `json:"path"`
+	Query       string         `json:"query"`
+	Headers     string         `json:"headers"`
+	RemoteAddr  sql.NullString `json:"remote_addr"`
+	ContentType sql.NullString `json:"content_type"`
+	BodySize    int64          `json:"body_size"`
+	ReceivedAt  time.Time      `json:"received_at"`
+}
+
+func (q *Queries) ListWebhookRequestsByTime(ctx context.Context, datetime interface{}) ([]ListWebhookRequestsByTimeRow, error) {
+	rows, err := q.db.QueryContext(ctx, listWebhookRequestsByTime, datetime)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListWebhookRequestsByTimeRow
+	for rows.Next() {
+		var i ListWebhookRequestsByTimeRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.HookID,
+			&i.Token,
+			&i.Name,
+			&i.Method,
+			&i.Path,
+			&i.Query,
+			&i.Headers,
 			&i.RemoteAddr,
 			&i.ContentType,
 			&i.BodySize,

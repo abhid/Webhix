@@ -3,55 +3,57 @@ package app
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	"github.com/GaIsBAX/Webhix/internal/config"
+	"github.com/GaIsBAX/Webhix/internal/repos"
 	"github.com/GaIsBAX/Webhix/internal/store"
 )
 
-type Deps struct {
-	DB  *store.Database
-	cfg *config.Config
+type dependencies struct {
+	db           *store.Database
+	repositories *repositories
 }
 
-func NewDeps(ctx context.Context, cfg *config.Config) (*Deps, error) {
-	deps := &Deps{
-		cfg: cfg,
-	}
-
-	if err := deps.setupInfrastructure(ctx); err != nil {
-		return nil, err
-	}
-
-	return deps, nil
-}
-
-func (d *Deps) setupInfrastructure(ctx context.Context) error {
-	var errs []error
-
-	database, err := store.New(ctx, d.cfg.DBPath)
+func newDependencies(ctx context.Context, cfg *config.Config) (*dependencies, error) {
+	db, err := store.New(ctx, cfg.DBPath)
 	if err != nil {
-		errs = append(errs, err)
+		return nil, fmt.Errorf("open database: %w", err)
 	}
 
-	d.DB = database
-
-	if d.DB != nil {
-		if err := d.DB.Migrate(); err != nil {
-			errs = append(errs, err)
+	if err := db.Migrate(); err != nil {
+		if closeErr := db.Close(); closeErr != nil {
+			return nil, errors.Join(
+				fmt.Errorf("migrate database: %w", err),
+				fmt.Errorf("close database after migration failure: %w", closeErr),
+			)
 		}
+
+		return nil, fmt.Errorf("migrate database: %w", err)
 	}
 
-	return errors.Join(errs...)
+	return &dependencies{
+		db:           db,
+		repositories: newRepositories(db),
+	}, nil
 }
 
-func (d *Deps) teardownInfrastructure() error {
-	var errs []error
+type repositories struct {
+	hook  *repos.HookRepository
+	serve *repos.Serve
+}
 
-	if d.DB != nil {
-		if err := d.DB.Close(); err != nil {
-			errs = append(errs, err)
-		}
+func newRepositories(db *store.Database) *repositories {
+	return &repositories{
+		hook:  repos.NewHookRepository(db.DB),
+		serve: repos.NewServe(db.DB),
+	}
+}
+
+func (d *dependencies) close() error {
+	if d.db != nil {
+		return d.db.Close()
 	}
 
-	return errors.Join(errs...)
+	return nil
 }
