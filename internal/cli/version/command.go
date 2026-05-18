@@ -43,8 +43,10 @@ func print(w io.Writer, info domain.VersionInfo, output string) error {
 
 	case outputYAML:
 		encoder := yaml.NewEncoder(w)
-		defer encoder.Close()
-		return encoder.Encode(info)
+		if err := encoder.Encode(info); err != nil {
+			return err
+		}
+		return encoder.Close()
 
 	default:
 		_, err := fmt.Fprintf(
