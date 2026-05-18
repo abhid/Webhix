@@ -15,6 +15,13 @@ type Service interface {
 	Info() domain.VersionInfo
 }
 
+type versionInfoContract struct {
+	Version string `json:"version" yaml:"version"`
+	Commit  string `json:"commit"  yaml:"commit"`
+	Built   string `json:"built"   yaml:"built"`
+	Go      string `json:"go"      yaml:"go"`
+}
+
 func NewCommand(ctx context.Context, service Service) *cobra.Command {
 	opts := NewOptions()
 
@@ -39,11 +46,11 @@ func print(w io.Writer, info domain.VersionInfo, output string) error {
 	switch output {
 	case outputJSON:
 		encoder := json.NewEncoder(w)
-		return encoder.Encode(info)
+		return encoder.Encode(toContract(info))
 
 	case outputYAML:
 		encoder := yaml.NewEncoder(w)
-		if err := encoder.Encode(info); err != nil {
+		if err := encoder.Encode(toContract(info)); err != nil {
 			return err
 		}
 		return encoder.Close()
@@ -58,5 +65,14 @@ func print(w io.Writer, info domain.VersionInfo, output string) error {
 			info.Go,
 		)
 		return err
+	}
+}
+
+func toContract(info domain.VersionInfo) versionInfoContract {
+	return versionInfoContract{
+		Version: info.Version,
+		Commit:  info.Commit,
+		Built:   info.Built,
+		Go:      info.Go,
 	}
 }

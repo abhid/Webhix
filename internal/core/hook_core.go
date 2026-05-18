@@ -2,10 +2,14 @@ package core
 
 import (
 	"context"
+	"errors"
 
 	"github.com/GaIsBAX/Webhix/internal/domain"
-	"github.com/GaIsBAX/Webhix/pkg"
 )
+
+const defaultHookResponseStatusCode int64 = 200
+
+type TokenGenerator func() string
 
 type HookRepository interface {
 	CreateHook(ctx context.Context, token string) (domain.Hook, error)
@@ -16,25 +20,31 @@ type HookRepository interface {
 	UpsertHookResponse(ctx context.Context, hookID int64, params domain.UpsertHookResponseParams) (domain.HookResponse, error)
 }
 
-type HookService struct {
-	repo HookRepository
+type Hook struct {
+	repo          HookRepository
+	generateToken TokenGenerator
 }
 
-func NewHookService(repo HookRepository) *HookService {
-	return &HookService{
-		repo: repo,
+func NewHook(repo HookRepository, generateToken TokenGenerator) *Hook {
+	if generateToken == nil {
+		generateToken = func() string { return "" }
+	}
+
+	return &Hook{
+		repo:          repo,
+		generateToken: generateToken,
 	}
 }
 
-func (s *HookService) CreateHook(ctx context.Context, token string) (domain.Hook, error) {
+func (s *Hook) CreateHook(ctx context.Context, token string) (domain.Hook, error) {
 	if token == "" {
-		token = pkg.GeneratePrefixedString("ho")
+		token = s.generateToken()
 	}
 
 	return s.repo.CreateHook(ctx, token)
 }
 
-func (s *HookService) ReceiveWebhook(ctx context.Context, token string, params domain.CreateWebhookRequestParams) (domain.WebhookRequest, domain.HookResponse, error) {
+func (s *Hook) ReceiveWebhook(ctx context.Context, token string, params domain.CreateWebhookRequestParams) (domain.WebhookRequest, domain.HookResponse, error) {
 	hook, err := s.repo.GetHookByToken(ctx, token)
 	if err != nil {
 		return domain.WebhookRequest{}, domain.HookResponse{}, err
@@ -49,13 +59,16 @@ func (s *HookService) ReceiveWebhook(ctx context.Context, token string, params d
 
 	resp, err := s.repo.GetHookResponse(ctx, hook.ID)
 	if err != nil {
+		if errors.Is(err, domain.ErrNotFound) {
+			return req, defaultHookResponse(), nil
+		}
 		return domain.WebhookRequest{}, domain.HookResponse{}, err
 	}
 
 	return req, resp, nil
 }
 
-func (s *HookService) ListWebhookRequests(ctx context.Context, token string) ([]domain.WebhookRequest, error) {
+func (s *Hook) ListWebhookRequests(ctx context.Context, token string) ([]domain.WebhookRequest, error) {
 	hook, err := s.repo.GetHookByToken(ctx, token)
 	if err != nil {
 		return nil, err
@@ -64,20 +77,35 @@ func (s *HookService) ListWebhookRequests(ctx context.Context, token string) ([]
 	return s.repo.ListWebhookRequests(ctx, hook.ID)
 }
 
-func (s *HookService) GetHookResponse(ctx context.Context, token string) (domain.HookResponse, error) {
+func (s *Hook) GetHookResponse(ctx context.Context, token string) (domain.HookResponse, error) {
 	hook, err := s.repo.GetHookByToken(ctx, token)
 	if err != nil {
 		return domain.HookResponse{}, err
 	}
 
-	return s.repo.GetHookResponse(ctx, hook.ID)
+	resp, err := s.repo.GetHookResponse(ctx, hook.ID)
+	if err != nil {
+		if errors.Is(err, domain.ErrNotFound) {
+			return defaultHookResponse(), nil
+		}
+		return domain.HookResponse{}, err
+	}
+
+	return resp, nil
 }
 
-func (s *HookService) SetHookResponse(ctx context.Context, token string, params domain.UpsertHookResponseParams) (domain.HookResponse, error) {
+func (s *Hook) SetHookResponse(ctx context.Context, token string, params domain.UpsertHookResponseParams) (domain.HookResponse, error) {
 	hook, err := s.repo.GetHookByToken(ctx, token)
 	if err != nil {
 		return domain.HookResponse{}, err
 	}
 
 	return s.repo.UpsertHookResponse(ctx, hook.ID, params)
+}
+
+func defaultHookResponse() domain.HookResponse {
+	return domain.HookResponse{
+		StatusCode: defaultHookResponseStatusCode,
+		Headers:    map[string]string{},
+	}
 }

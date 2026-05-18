@@ -2,22 +2,26 @@ package app
 
 import (
 	"context"
+	"errors"
 	"log/slog"
 	"net/http"
 	"time"
 
 	"github.com/GaIsBAX/Webhix/internal/config"
-	"github.com/GaIsBAX/Webhix/internal/hub"
+	"github.com/GaIsBAX/Webhix/internal/server"
+	"github.com/GaIsBAX/Webhix/internal/server/middleware"
 )
 
-const shutdownTimeout = 10 * time.Second
+const (
+	readHeaderTimeout = 5 * time.Second
+	shutdownTimeout   = 10 * time.Second
+)
 
 type App struct {
-	server   *http.Server
-	config   *config.Config
-	deps     *dependencies
-	events   *hub.Hub
-	services *services
+	server *http.Server
+
+	config *config.Config
+	deps   *dependencies
 }
 
 func New(ctx context.Context, cfg *config.Config) (*App, error) {
@@ -26,26 +30,44 @@ func New(ctx context.Context, cfg *config.Config) (*App, error) {
 		return nil, err
 	}
 
-	services := newServices(deps.repositories)
-	events := hub.New()
-
-	mux, err := newMux(cfg, services, events)
+	handler, err := newHTTPHandler(deps.mux, cfg)
 	if err != nil {
+		if closeErr := deps.close(); closeErr != nil {
+			return nil, errors.Join(err, closeErr)
+		}
 		return nil, err
 	}
 
-	handler, err := newHTTPHandler(cfg, mux)
-	if err != nil {
-		return nil, err
+	server := &http.Server{
+		Addr:              cfg.Addr,
+		Handler:           handler,
+		ReadHeaderTimeout: readHeaderTimeout,
 	}
 
 	return &App{
-		server:   newHTTPServer(cfg, handler),
-		config:   cfg,
-		deps:     deps,
-		events:   events,
-		services: services,
+		server: server,
+		config: cfg,
+		deps:   deps,
 	}, nil
+}
+
+func newHTTPHandler(mux *http.ServeMux, cfg *config.Config) (http.Handler, error) {
+	var middlewares []func(http.Handler) http.Handler
+
+	if len(cfg.TrustedProxies) > 0 {
+		trustedProxies := middleware.NewTrustedProxies(cfg.TrustedProxies)
+		if trustedProxies == nil {
+			return nil, ErrInvalidTrustedProxies
+		}
+		middlewares = append(middlewares, trustedProxies.BehindProxy)
+	}
+
+	if cfg.Password != "" || cfg.SecretKey != "" {
+		auth := middleware.NewAuth(cfg.Password, cfg.SecretKey)
+		middlewares = append(middlewares, auth.Protect)
+	}
+
+	return server.Chain(mux, middlewares...), nil
 }
 
 func (a *App) Start(ctx context.Context) error {
@@ -68,7 +90,7 @@ func (a *App) Start(ctx context.Context) error {
 
 func (a *App) Shutdown(ctx context.Context) error {
 	slog.Info("shutting down")
-	a.events.Close()
+	a.deps.infra.hub.Close()
 
 	shutdownCtx, cancel := context.WithTimeout(ctx, shutdownTimeout)
 	defer cancel()

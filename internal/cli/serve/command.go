@@ -5,7 +5,7 @@ import (
 	"log/slog"
 
 	"github.com/GaIsBAX/Webhix/internal/config"
-	"github.com/GaIsBAX/Webhix/internal/domain"
+	"github.com/GaIsBAX/Webhix/internal/core"
 	"github.com/spf13/cobra"
 )
 
@@ -15,16 +15,16 @@ const (
 )
 
 type Service interface {
-	Run(ctx context.Context, opts domain.ServeRunOptions, start domain.ServeStartFunc, onRetentionError func(error)) error
+	Run(ctx context.Context, opts core.ServeRunOptions, start core.ServeStartFunc, onRetentionError func(error)) error
 }
 
 type ServiceFactory interface {
-	New(ctx context.Context, cfg *config.Config) (Service, domain.ServeStartFunc, error)
+	New(ctx context.Context, cfg *config.Config) (Service, core.ServeStartFunc, error)
 }
 
-type ServiceFactoryFunc func(ctx context.Context, cfg *config.Config) (Service, domain.ServeStartFunc, error)
+type ServiceFactoryFunc func(ctx context.Context, cfg *config.Config) (Service, core.ServeStartFunc, error)
 
-func (f ServiceFactoryFunc) New(ctx context.Context, cfg *config.Config) (Service, domain.ServeStartFunc, error) {
+func (f ServiceFactoryFunc) New(ctx context.Context, cfg *config.Config) (Service, core.ServeStartFunc, error) {
 	return f(ctx, cfg)
 }
 

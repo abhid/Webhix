@@ -22,7 +22,7 @@ func SendError(w http.ResponseWriter, status int, msg ErrorContract) {
 	Send(w, status, NewErrorResponseContract(msg))
 }
 
-func DecodeContract[T any](req *http.Request) (*T, error) {
+func DecodeRequest[T any](req *http.Request) (*T, error) {
 	var body T
 
 	if err := json.NewDecoder(req.Body).Decode(&body); err != nil {

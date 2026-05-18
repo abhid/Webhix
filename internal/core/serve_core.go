@@ -4,9 +4,14 @@ import (
 	"context"
 	"errors"
 	"time"
-
-	"github.com/GaIsBAX/Webhix/internal/domain"
 )
+
+type ServeRunOptions struct {
+	Retention time.Duration
+	ReadOnly  bool
+}
+
+type ServeStartFunc func(context.Context) error
 
 type ServeRepository interface {
 	DeleteWebhookRequestsOlderThan(ctx context.Context, retention time.Duration) (int64, error)
@@ -49,12 +54,12 @@ func (s *Serve) RetentionCleaner(ctx context.Context, retention time.Duration) (
 	}
 }
 
-func (s *Serve) Run(ctx context.Context, opts domain.ServeRunOptions, start domain.ServeStartFunc, onRetentionError func(error)) error {
+func (s *Serve) Run(ctx context.Context, opts ServeRunOptions, start ServeStartFunc, onRetentionError func(error)) error {
 	s.StartRetentionCleaner(ctx, opts, onRetentionError)
 	return start(ctx)
 }
 
-func (s *Serve) StartRetentionCleaner(ctx context.Context, opts domain.ServeRunOptions, onError func(error)) {
+func (s *Serve) StartRetentionCleaner(ctx context.Context, opts ServeRunOptions, onError func(error)) {
 	if opts.Retention <= 0 || opts.ReadOnly {
 		return
 	}
