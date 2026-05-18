@@ -100,6 +100,18 @@ func (q *Queries) DeleteWebhookRequestsOlderThan(ctx context.Context, datetime i
 	return q.db.ExecContext(ctx, deleteWebhookRequestsOlderThan, datetime)
 }
 
+const getCountRequests = `-- name: GetCountRequests :one
+SELECT COUNT(*)
+FROM webhook_requests
+`
+
+func (q *Queries) GetCountRequests(ctx context.Context) (int64, error) {
+	row := q.db.QueryRowContext(ctx, getCountRequests)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const getHookByToken = `-- name: GetHookByToken :one
 SELECT id, token, name, created_at, updated_at
 FROM hooks

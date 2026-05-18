@@ -30,3 +30,12 @@ func (r *Serve) DeleteWebhookRequestsOlderThan(ctx context.Context, retention ti
 
 	return affected, nil
 }
+
+func (r *Serve) GetCountRequests(ctx context.Context) (int64, error) {
+	count, err := r.q.GetCountRequests(ctx)
+	if err != nil {
+		return 0, err
+	}
+
+	return count, nil
+}

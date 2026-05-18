@@ -8,6 +8,10 @@ SELECT id, token, name, created_at, updated_at
 FROM hooks
 WHERE token = ?;
 
+-- name: GetCountRequests :one
+SELECT COUNT(*)
+FROM webhook_requests;
+
 -- name: CreateWebhookRequest :one
 INSERT INTO webhook_requests (
     hook_id,
