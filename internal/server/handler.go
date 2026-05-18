@@ -10,7 +10,6 @@ import (
 	"net/http"
 
 	"github.com/GaIsBAX/Webhix/internal/domain"
-	"github.com/GaIsBAX/Webhix/internal/hub"
 )
 
 const DefaultMaxBodySize int64 = 5 << 20 // 5MB
@@ -23,6 +22,12 @@ type HookService interface {
 	SetHookResponse(ctx context.Context, token string, params domain.UpsertHookResponseParams) (domain.HookResponse, error)
 }
 
+type EventBroker interface {
+	Done() <-chan struct{}
+	Subscribe(token string) (<-chan []byte, func())
+	Publish(token string, data []byte)
+}
+
 type HookOptions struct {
 	BaseURL     string
 	MaxBodySize int64
@@ -32,7 +37,7 @@ type HookOptions struct {
 type HookDeps struct {
 	Mux     *http.ServeMux
 	Service HookService
-	Hub     *hub.Hub
+	Hub     EventBroker
 	Opts    HookOptions
 }
 
@@ -62,7 +67,7 @@ func (h *Hook) CreateEndpoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	contract, err := DecodeContract[CreateEndpointRequestContract](r)
+	contract, err := DecodeRequest[CreateEndpointRequestContract](r)
 	if err != nil {
 		slog.Error("create endpoint", "err", err)
 		SendError(w, http.StatusInternalServerError, ErrInternal)
@@ -265,7 +270,7 @@ func (h *Hook) SetResponse(w http.ResponseWriter, r *http.Request) {
 
 	token := r.PathValue("token")
 
-	contract, err := DecodeContract[SetHookResponseRequestContract](r)
+	contract, err := DecodeRequest[SetHookResponseRequestContract](r)
 	if err != nil {
 		SendError(w, http.StatusBadRequest, ErrBadRequest)
 		return

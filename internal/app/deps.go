@@ -12,6 +12,7 @@ import (
 	"github.com/GaIsBAX/Webhix/internal/repos"
 	"github.com/GaIsBAX/Webhix/internal/server"
 	"github.com/GaIsBAX/Webhix/internal/store"
+	"github.com/GaIsBAX/Webhix/pkg"
 )
 
 type dependencies struct {
@@ -21,6 +22,7 @@ type dependencies struct {
 	infra    *infrastructure
 	repos    *repositories
 	services *services
+	handlers *handlers
 }
 
 func newDependencies(ctx context.Context, cfg *config.Config) (*dependencies, error) {
@@ -42,6 +44,8 @@ func newDependencies(ctx context.Context, cfg *config.Config) (*dependencies, er
 	deps.infra = infra
 	deps.repos = repos
 	deps.services = services
+	deps.handlers = newHandlers(&deps)
+	deps.handlers.registerRoutes()
 
 	return &deps, nil
 }
@@ -53,7 +57,9 @@ type services struct {
 }
 
 func newServices(repos *repositories) *services {
-	hook := core.NewHook(repos.hook)
+	hook := core.NewHook(repos.hook, func() string {
+		return pkg.GeneratePrefixedString("ho")
+	})
 	serve := core.NewServe(repos.serve)
 	version := core.NewVersion()
 
@@ -115,12 +121,12 @@ func newInfrastructure(ctx context.Context, cfg *config.Config) (*infrastructure
 }
 
 type handlers struct {
-	hook server.Hook
+	hook *server.Hook
 }
 
 func newHandlers(deps *dependencies) *handlers {
 	return &handlers{
-		hook: *server.NewHook(&server.HookDeps{
+		hook: server.NewHook(&server.HookDeps{
 			Mux:     deps.mux,
 			Service: deps.services.hook,
 			Hub:     deps.infra.hub,
@@ -131,4 +137,8 @@ func newHandlers(deps *dependencies) *handlers {
 			},
 		}),
 	}
+}
+
+func (h *handlers) registerRoutes() {
+	h.hook.RegisterRoutes()
 }

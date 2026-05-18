@@ -2,11 +2,14 @@ package app
 
 import (
 	"context"
+	"errors"
 	"log/slog"
 	"net/http"
 	"time"
 
 	"github.com/GaIsBAX/Webhix/internal/config"
+	"github.com/GaIsBAX/Webhix/internal/server"
+	"github.com/GaIsBAX/Webhix/internal/server/middleware"
 )
 
 const shutdownTimeout = 10 * time.Second
@@ -24,9 +27,17 @@ func New(ctx context.Context, cfg *config.Config) (*App, error) {
 		return nil, err
 	}
 
+	handler, err := newHTTPHandler(deps.mux, cfg)
+	if err != nil {
+		if closeErr := deps.close(); closeErr != nil {
+			return nil, errors.Join(err, closeErr)
+		}
+		return nil, err
+	}
+
 	server := &http.Server{
 		Addr:    cfg.Addr,
-		Handler: deps.mux,
+		Handler: handler,
 	}
 
 	return &App{
@@ -34,6 +45,25 @@ func New(ctx context.Context, cfg *config.Config) (*App, error) {
 		config: cfg,
 		deps:   deps,
 	}, nil
+}
+
+func newHTTPHandler(mux *http.ServeMux, cfg *config.Config) (http.Handler, error) {
+	var middlewares []func(http.Handler) http.Handler
+
+	if len(cfg.TrustedProxies) > 0 {
+		trustedProxies := middleware.NewTrustedProxies(cfg.TrustedProxies)
+		if trustedProxies == nil {
+			return nil, ErrInvalidTrustedProxies
+		}
+		middlewares = append(middlewares, trustedProxies.BehindProxy)
+	}
+
+	if cfg.Password != "" || cfg.SecretKey != "" {
+		auth := middleware.NewAuth(cfg.Password, cfg.SecretKey)
+		middlewares = append(middlewares, auth.Protect)
+	}
+
+	return server.Chain(mux, middlewares...), nil
 }
 
 func (a *App) Start(ctx context.Context) error {

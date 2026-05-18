@@ -82,7 +82,7 @@ func (r *Hook) GetHookResponse(ctx context.Context, hookID int64) (domain.HookRe
 	row, err := r.q.GetHookResponseByHookID(ctx, hookID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return domain.HookResponse{StatusCode: 200, Headers: map[string]string{}}, nil
+			return domain.HookResponse{}, domain.ErrNotFound
 		}
 		return domain.HookResponse{}, err
 	}
