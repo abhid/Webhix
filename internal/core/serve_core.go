@@ -35,7 +35,7 @@ func (s *Serve) RetentionCleaner(ctx context.Context, retention time.Duration) (
 	for {
 		select {
 		case <-ticker.C:
-			return cleanup()
+			cleanup()
 
 		case <-ctx.Done():
 			return 0, ctx.Err()
