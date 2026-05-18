@@ -16,17 +16,17 @@ type HookRepository interface {
 	UpsertHookResponse(ctx context.Context, hookID int64, params domain.UpsertHookResponseParams) (domain.HookResponse, error)
 }
 
-type HookService struct {
+type Hook struct {
 	repo HookRepository
 }
 
-func NewHookService(repo HookRepository) *HookService {
-	return &HookService{
+func NewHook(repo HookRepository) *Hook {
+	return &Hook{
 		repo: repo,
 	}
 }
 
-func (s *HookService) CreateHook(ctx context.Context, token string) (domain.Hook, error) {
+func (s *Hook) CreateHook(ctx context.Context, token string) (domain.Hook, error) {
 	if token == "" {
 		token = pkg.GeneratePrefixedString("ho")
 	}
@@ -34,7 +34,7 @@ func (s *HookService) CreateHook(ctx context.Context, token string) (domain.Hook
 	return s.repo.CreateHook(ctx, token)
 }
 
-func (s *HookService) ReceiveWebhook(ctx context.Context, token string, params domain.CreateWebhookRequestParams) (domain.WebhookRequest, domain.HookResponse, error) {
+func (s *Hook) ReceiveWebhook(ctx context.Context, token string, params domain.CreateWebhookRequestParams) (domain.WebhookRequest, domain.HookResponse, error) {
 	hook, err := s.repo.GetHookByToken(ctx, token)
 	if err != nil {
 		return domain.WebhookRequest{}, domain.HookResponse{}, err
@@ -55,7 +55,7 @@ func (s *HookService) ReceiveWebhook(ctx context.Context, token string, params d
 	return req, resp, nil
 }
 
-func (s *HookService) ListWebhookRequests(ctx context.Context, token string) ([]domain.WebhookRequest, error) {
+func (s *Hook) ListWebhookRequests(ctx context.Context, token string) ([]domain.WebhookRequest, error) {
 	hook, err := s.repo.GetHookByToken(ctx, token)
 	if err != nil {
 		return nil, err
@@ -64,7 +64,7 @@ func (s *HookService) ListWebhookRequests(ctx context.Context, token string) ([]
 	return s.repo.ListWebhookRequests(ctx, hook.ID)
 }
 
-func (s *HookService) GetHookResponse(ctx context.Context, token string) (domain.HookResponse, error) {
+func (s *Hook) GetHookResponse(ctx context.Context, token string) (domain.HookResponse, error) {
 	hook, err := s.repo.GetHookByToken(ctx, token)
 	if err != nil {
 		return domain.HookResponse{}, err
@@ -73,7 +73,7 @@ func (s *HookService) GetHookResponse(ctx context.Context, token string) (domain
 	return s.repo.GetHookResponse(ctx, hook.ID)
 }
 
-func (s *HookService) SetHookResponse(ctx context.Context, token string, params domain.UpsertHookResponseParams) (domain.HookResponse, error) {
+func (s *Hook) SetHookResponse(ctx context.Context, token string, params domain.UpsertHookResponseParams) (domain.HookResponse, error) {
 	hook, err := s.repo.GetHookByToken(ctx, token)
 	if err != nil {
 		return domain.HookResponse{}, err

@@ -23,43 +23,41 @@ type HookService interface {
 	SetHookResponse(ctx context.Context, token string, params domain.UpsertHookResponseParams) (domain.HookResponse, error)
 }
 
-type HookHandlerOptions struct {
+type HookOptions struct {
 	BaseURL     string
 	MaxBodySize int64
 	ReadOnly    bool
 }
 
-type HookHandler struct {
-	mux     *http.ServeMux
-	service HookService
-	hub     *hub.Hub
-
-	opts HookHandlerOptions
+type HookDeps struct {
+	Mux     *http.ServeMux
+	Service HookService
+	Hub     *hub.Hub
+	Opts    HookOptions
 }
 
-func NewHookHandler(mux *http.ServeMux, srv HookService, hub *hub.Hub, opts HookHandlerOptions) *HookHandler {
-	if opts.MaxBodySize <= 0 {
-		opts.MaxBodySize = DefaultMaxBodySize
+type Hook struct {
+	deps *HookDeps
+}
+
+func NewHook(deps *HookDeps) *Hook {
+	if deps.Opts.MaxBodySize <= 0 {
+		deps.Opts.MaxBodySize = DefaultMaxBodySize
 	}
 
-	return &HookHandler{
-		mux:     mux,
-		service: srv,
-		hub:     hub,
-		opts:    opts,
-	}
+	return &Hook{deps: deps}
 }
 
-func (h *HookHandler) RegisterRoutes() {
-	h.mux.HandleFunc("POST /api/endpoints", h.CreateEndpoint)
-	h.mux.HandleFunc("GET /api/endpoints/{token}/requests", h.ListRequests)
-	h.mux.HandleFunc("GET /api/endpoints/{token}/events", h.StreamEvents)
-	h.mux.HandleFunc("GET /api/endpoints/{token}/response", h.GetResponse)
-	h.mux.HandleFunc("PUT /api/endpoints/{token}/response", h.SetResponse)
-	h.mux.HandleFunc("/r/{token}", h.ReceiveWebhook)
+func (h *Hook) RegisterRoutes() {
+	h.deps.Mux.HandleFunc("POST /api/endpoints", h.CreateEndpoint)
+	h.deps.Mux.HandleFunc("GET /api/endpoints/{token}/requests", h.ListRequests)
+	h.deps.Mux.HandleFunc("GET /api/endpoints/{token}/events", h.StreamEvents)
+	h.deps.Mux.HandleFunc("GET /api/endpoints/{token}/response", h.GetResponse)
+	h.deps.Mux.HandleFunc("PUT /api/endpoints/{token}/response", h.SetResponse)
+	h.deps.Mux.HandleFunc("/r/{token}", h.ReceiveWebhook)
 }
 
-func (h *HookHandler) CreateEndpoint(w http.ResponseWriter, r *http.Request) {
+func (h *Hook) CreateEndpoint(w http.ResponseWriter, r *http.Request) {
 	if h.readOnly(w) {
 		return
 	}
@@ -71,7 +69,7 @@ func (h *HookHandler) CreateEndpoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	hook, err := h.service.CreateHook(r.Context(), contract.Name)
+	hook, err := h.deps.Service.CreateHook(r.Context(), contract.Name)
 	if err != nil {
 		slog.Error("create endpoint", "err", err)
 		SendError(w, http.StatusInternalServerError, ErrInternal)
@@ -82,7 +80,7 @@ func (h *HookHandler) CreateEndpoint(w http.ResponseWriter, r *http.Request) {
 		ID:    hook.ID,
 		Token: hook.Token,
 		Name:  hook.Name,
-		URL:   h.opts.BaseURL + "/r/" + hook.Token,
+		URL:   h.deps.Opts.BaseURL + "/r/" + hook.Token,
 	})
 	if err != nil {
 		slog.Error("marshal endpoint", "err", err)
@@ -93,7 +91,7 @@ func (h *HookHandler) CreateEndpoint(w http.ResponseWriter, r *http.Request) {
 	SendSuccess(w, http.StatusCreated, data)
 }
 
-func (h *HookHandler) ReceiveWebhook(w http.ResponseWriter, r *http.Request) {
+func (h *Hook) ReceiveWebhook(w http.ResponseWriter, r *http.Request) {
 	if h.readOnly(w) {
 		return
 	}
@@ -107,14 +105,14 @@ func (h *HookHandler) ReceiveWebhook(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	r.Body = http.MaxBytesReader(w, r.Body, h.opts.MaxBodySize)
+	r.Body = http.MaxBytesReader(w, r.Body, h.deps.Opts.MaxBodySize)
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		var maxBytesErr *http.MaxBytesError
 		if errors.As(err, &maxBytesErr) {
 			SendError(w, http.StatusRequestEntityTooLarge, WithDetails(ErrPayloadTooLarge, ErrorDetailContract{
 				Field:   "body",
-				Message: fmt.Sprintf("body exceeds %d bytes limit", h.opts.MaxBodySize),
+				Message: fmt.Sprintf("body exceeds %d bytes limit", h.deps.Opts.MaxBodySize),
 			}))
 			return
 		}
@@ -126,7 +124,7 @@ func (h *HookHandler) ReceiveWebhook(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	req, customResp, err := h.service.ReceiveWebhook(r.Context(), token, domain.CreateWebhookRequestParams{
+	req, customResp, err := h.deps.Service.ReceiveWebhook(r.Context(), token, domain.CreateWebhookRequestParams{
 		Method:      r.Method,
 		Path:        r.URL.Path,
 		Query:       r.URL.RawQuery,
@@ -153,7 +151,7 @@ func (h *HookHandler) ReceiveWebhook(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.hub.Publish(token, data)
+	h.deps.Hub.Publish(token, data)
 
 	if customResp.StatusCode > 0 {
 		for k, v := range customResp.Headers {
@@ -171,10 +169,10 @@ func (h *HookHandler) ReceiveWebhook(w http.ResponseWriter, r *http.Request) {
 	SendSuccess(w, http.StatusOK, data)
 }
 
-func (h *HookHandler) ListRequests(w http.ResponseWriter, r *http.Request) {
+func (h *Hook) ListRequests(w http.ResponseWriter, r *http.Request) {
 	token := r.PathValue("token")
 
-	reqs, err := h.service.ListWebhookRequests(r.Context(), token)
+	reqs, err := h.deps.Service.ListWebhookRequests(r.Context(), token)
 	if err != nil {
 		if errors.Is(err, domain.ErrNotFound) {
 			SendError(w, http.StatusNotFound, ErrNotFound)
@@ -200,7 +198,7 @@ func (h *HookHandler) ListRequests(w http.ResponseWriter, r *http.Request) {
 	SendSuccess(w, http.StatusOK, data)
 }
 
-func (h *HookHandler) StreamEvents(w http.ResponseWriter, r *http.Request) {
+func (h *Hook) StreamEvents(w http.ResponseWriter, r *http.Request) {
 	token := r.PathValue("token")
 
 	w.Header().Set("Content-Type", "text/event-stream")
@@ -213,7 +211,7 @@ func (h *HookHandler) StreamEvents(w http.ResponseWriter, r *http.Request) {
 		f.Flush()
 	}
 
-	ch, unsubscribe := h.hub.Subscribe(token)
+	ch, unsubscribe := h.deps.Hub.Subscribe(token)
 	defer unsubscribe()
 
 	flusher, canFlush := w.(http.Flusher)
@@ -222,8 +220,10 @@ func (h *HookHandler) StreamEvents(w http.ResponseWriter, r *http.Request) {
 		select {
 		case <-r.Context().Done():
 			return
-		case <-h.hub.Done():
+
+		case <-h.deps.Hub.Done():
 			return
+
 		case data := <-ch:
 			if _, err := fmt.Fprintf(w, "data: %s\n\n", data); err != nil {
 				return
@@ -235,10 +235,10 @@ func (h *HookHandler) StreamEvents(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (h *HookHandler) GetResponse(w http.ResponseWriter, r *http.Request) {
+func (h *Hook) GetResponse(w http.ResponseWriter, r *http.Request) {
 	token := r.PathValue("token")
 
-	resp, err := h.service.GetHookResponse(r.Context(), token)
+	resp, err := h.deps.Service.GetHookResponse(r.Context(), token)
 	if err != nil {
 		if errors.Is(err, domain.ErrNotFound) {
 			SendError(w, http.StatusNotFound, ErrNotFound)
@@ -258,7 +258,7 @@ func (h *HookHandler) GetResponse(w http.ResponseWriter, r *http.Request) {
 	SendSuccess(w, http.StatusOK, data)
 }
 
-func (h *HookHandler) SetResponse(w http.ResponseWriter, r *http.Request) {
+func (h *Hook) SetResponse(w http.ResponseWriter, r *http.Request) {
 	if h.readOnly(w) {
 		return
 	}
@@ -284,7 +284,7 @@ func (h *HookHandler) SetResponse(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	resp, err := h.service.SetHookResponse(r.Context(), token, params)
+	resp, err := h.deps.Service.SetHookResponse(r.Context(), token, params)
 	if err != nil {
 		if errors.Is(err, domain.ErrNotFound) {
 			SendError(w, http.StatusNotFound, ErrNotFound)
@@ -304,8 +304,8 @@ func (h *HookHandler) SetResponse(w http.ResponseWriter, r *http.Request) {
 	SendSuccess(w, http.StatusOK, data)
 }
 
-func (h *HookHandler) readOnly(w http.ResponseWriter) bool {
-	if !h.opts.ReadOnly {
+func (h *Hook) readOnly(w http.ResponseWriter) bool {
+	if !h.deps.Opts.ReadOnly {
 		return false
 	}
 

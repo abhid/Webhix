@@ -10,17 +10,17 @@ import (
 	"github.com/GaIsBAX/Webhix/internal/store/sqlc"
 )
 
-type HookRepository struct {
+type Hook struct {
 	q *sqlc.Queries
 }
 
-func NewHookRepository(db sqlc.DBTX) *HookRepository {
-	return &HookRepository{
+func NewHook(db sqlc.DBTX) *Hook {
+	return &Hook{
 		q: sqlc.New(db),
 	}
 }
 
-func (r *HookRepository) CreateHook(ctx context.Context, token string) (domain.Hook, error) {
+func (r *Hook) CreateHook(ctx context.Context, token string) (domain.Hook, error) {
 	hook, err := r.q.CreateHook(ctx, sqlc.CreateHookParams{
 		Token: token,
 		Name:  sql.NullString{},
@@ -32,7 +32,7 @@ func (r *HookRepository) CreateHook(ctx context.Context, token string) (domain.H
 	return toDomainHook(hook), nil
 }
 
-func (r *HookRepository) GetHookByToken(ctx context.Context, token string) (domain.Hook, error) {
+func (r *Hook) GetHookByToken(ctx context.Context, token string) (domain.Hook, error) {
 	hook, err := r.q.GetHookByToken(ctx, token)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -44,7 +44,7 @@ func (r *HookRepository) GetHookByToken(ctx context.Context, token string) (doma
 	return toDomainHook(hook), nil
 }
 
-func (r *HookRepository) CreateWebhookRequest(ctx context.Context, params domain.CreateWebhookRequestParams) (domain.WebhookRequest, error) {
+func (r *Hook) CreateWebhookRequest(ctx context.Context, params domain.CreateWebhookRequestParams) (domain.WebhookRequest, error) {
 
 	req, err := r.q.CreateWebhookRequest(ctx, sqlc.CreateWebhookRequestParams{
 		HookID:      params.HookID,
@@ -64,7 +64,7 @@ func (r *HookRepository) CreateWebhookRequest(ctx context.Context, params domain
 	return toDomainWebhookRequest(req), nil
 }
 
-func (r *HookRepository) ListWebhookRequests(ctx context.Context, hookID int64) ([]domain.WebhookRequest, error) {
+func (r *Hook) ListWebhookRequests(ctx context.Context, hookID int64) ([]domain.WebhookRequest, error) {
 	rows, err := r.q.ListWebhookRequestsByHookID(ctx, hookID)
 	if err != nil {
 		return nil, err
@@ -78,7 +78,7 @@ func (r *HookRepository) ListWebhookRequests(ctx context.Context, hookID int64) 
 	return result, nil
 }
 
-func (r *HookRepository) GetHookResponse(ctx context.Context, hookID int64) (domain.HookResponse, error) {
+func (r *Hook) GetHookResponse(ctx context.Context, hookID int64) (domain.HookResponse, error) {
 	row, err := r.q.GetHookResponseByHookID(ctx, hookID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -90,7 +90,7 @@ func (r *HookRepository) GetHookResponse(ctx context.Context, hookID int64) (dom
 	return toDomainHookResponse(row), nil
 }
 
-func (r *HookRepository) UpsertHookResponse(ctx context.Context, hookID int64, params domain.UpsertHookResponseParams) (domain.HookResponse, error) {
+func (r *Hook) UpsertHookResponse(ctx context.Context, hookID int64, params domain.UpsertHookResponseParams) (domain.HookResponse, error) {
 	headersJSON, err := json.Marshal(params.Headers)
 	if err != nil {
 		return domain.HookResponse{}, err

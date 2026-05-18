@@ -4,56 +4,131 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/http"
 
 	"github.com/GaIsBAX/Webhix/internal/config"
+	"github.com/GaIsBAX/Webhix/internal/core"
+	"github.com/GaIsBAX/Webhix/internal/hub"
 	"github.com/GaIsBAX/Webhix/internal/repos"
+	"github.com/GaIsBAX/Webhix/internal/server"
 	"github.com/GaIsBAX/Webhix/internal/store"
 )
 
 type dependencies struct {
-	db           *store.Database
-	repositories *repositories
+	mux *http.ServeMux
+	cfg *config.Config
+
+	infra    *infrastructure
+	repos    *repositories
+	services *services
 }
 
 func newDependencies(ctx context.Context, cfg *config.Config) (*dependencies, error) {
-	db, err := store.New(ctx, cfg.DBPath)
+	var deps dependencies
+
+	mux := http.NewServeMux()
+
+	infra, err := newInfrastructure(ctx, cfg)
 	if err != nil {
-		return nil, fmt.Errorf("open database: %w", err)
+		return nil, err
 	}
 
-	if err := db.Migrate(); err != nil {
-		if closeErr := db.Close(); closeErr != nil {
-			return nil, errors.Join(
-				fmt.Errorf("migrate database: %w", err),
-				fmt.Errorf("close database after migration failure: %w", closeErr),
-			)
-		}
+	repos := newRepositories(infra.db)
+	services := newServices(repos)
 
-		return nil, fmt.Errorf("migrate database: %w", err)
+	deps.mux = mux
+	deps.cfg = cfg
+
+	deps.infra = infra
+	deps.repos = repos
+	deps.services = services
+
+	return &deps, nil
+}
+
+type services struct {
+	hook    *core.Hook
+	serve   *core.Serve
+	version *core.Version
+}
+
+func newServices(repos *repositories) *services {
+	hook := core.NewHook(repos.hook)
+	serve := core.NewServe(repos.serve)
+	version := core.NewVersion()
+
+	return &services{
+		hook:    hook,
+		serve:   serve,
+		version: version,
 	}
-
-	return &dependencies{
-		db:           db,
-		repositories: newRepositories(db),
-	}, nil
 }
 
 type repositories struct {
-	hook  *repos.HookRepository
+	hook  *repos.Hook
 	serve *repos.Serve
 }
 
 func newRepositories(db *store.Database) *repositories {
 	return &repositories{
-		hook:  repos.NewHookRepository(db.DB),
+		hook:  repos.NewHook(db.DB),
 		serve: repos.NewServe(db.DB),
 	}
 }
 
 func (d *dependencies) close() error {
-	if d.db != nil {
-		return d.db.Close()
+	if d.infra.db != nil {
+		return d.infra.db.Close()
 	}
 
 	return nil
+}
+
+type infrastructure struct {
+	db  *store.Database
+	hub *hub.Hub
+}
+
+func newInfrastructure(ctx context.Context, cfg *config.Config) (*infrastructure, error) {
+	db, err := store.New(ctx, cfg.DBPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := db.Migrate(); err != nil {
+		if closeErr := db.Close(); closeErr != nil {
+			return nil, errors.Join(
+				fmt.Errorf("%w: %w", ErrMigrateDatabase, err),
+				fmt.Errorf("%w after migration failure: %w", ErrCloseDatabase, closeErr),
+			)
+		}
+
+		return nil, fmt.Errorf("%w: %w", ErrMigrateDatabase, err)
+	}
+
+	hub := hub.New()
+
+	return &infrastructure{
+		db:  db,
+		hub: hub,
+	}, nil
+}
+
+type handlers struct {
+	hook server.Hook
+}
+
+func newHandlers(deps *dependencies) *handlers {
+	return &handlers{
+		hook: *server.NewHook(&server.HookDeps{
+			Mux:     deps.mux,
+			Service: deps.services.hook,
+			Hub:     deps.infra.hub,
+			Opts: server.HookOptions{
+				BaseURL:     deps.cfg.BaseURL,
+				MaxBodySize: deps.cfg.MaxBodySize,
+				ReadOnly:    deps.cfg.ReadOnly,
+			},
+		}),
+	}
 }

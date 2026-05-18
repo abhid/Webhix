@@ -7,17 +7,15 @@ import (
 	"time"
 
 	"github.com/GaIsBAX/Webhix/internal/config"
-	"github.com/GaIsBAX/Webhix/internal/hub"
 )
 
 const shutdownTimeout = 10 * time.Second
 
 type App struct {
-	server   *http.Server
-	config   *config.Config
-	deps     *dependencies
-	events   *hub.Hub
-	services *services
+	server *http.Server
+
+	config *config.Config
+	deps   *dependencies
 }
 
 func New(ctx context.Context, cfg *config.Config) (*App, error) {
@@ -26,25 +24,15 @@ func New(ctx context.Context, cfg *config.Config) (*App, error) {
 		return nil, err
 	}
 
-	services := newServices(deps.repositories)
-	events := hub.New()
-
-	mux, err := newMux(cfg, services, events)
-	if err != nil {
-		return nil, err
-	}
-
-	handler, err := newHTTPHandler(cfg, mux)
-	if err != nil {
-		return nil, err
+	server := &http.Server{
+		Addr:    cfg.Addr,
+		Handler: deps.mux,
 	}
 
 	return &App{
-		server:   newHTTPServer(cfg, handler),
-		config:   cfg,
-		deps:     deps,
-		events:   events,
-		services: services,
+		server: server,
+		config: cfg,
+		deps:   deps,
 	}, nil
 }
 
@@ -68,7 +56,7 @@ func (a *App) Start(ctx context.Context) error {
 
 func (a *App) Shutdown(ctx context.Context) error {
 	slog.Info("shutting down")
-	a.events.Close()
+	a.deps.infra.hub.Close()
 
 	shutdownCtx, cancel := context.WithTimeout(ctx, shutdownTimeout)
 	defer cancel()

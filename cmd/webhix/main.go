@@ -26,8 +26,14 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err := app.Start(ctx, cfg, os.Args[1:]); err != nil {
-		slog.Error("app run", "err", err)
+	application, err := app.New(ctx, cfg)
+	if err != nil {
+		slog.Error("up app", "err", err)
+		os.Exit(1)
+	}
+
+	if err := application.Start(ctx); err != nil {
+		slog.Error("start app", "err", err)
 		os.Exit(1)
 	}
 }
