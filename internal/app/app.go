@@ -12,7 +12,10 @@ import (
 	"github.com/GaIsBAX/Webhix/internal/server/middleware"
 )
 
-const shutdownTimeout = 10 * time.Second
+const (
+	readHeaderTimeout = 5 * time.Second
+	shutdownTimeout   = 10 * time.Second
+)
 
 type App struct {
 	server *http.Server
@@ -36,8 +39,9 @@ func New(ctx context.Context, cfg *config.Config) (*App, error) {
 	}
 
 	server := &http.Server{
-		Addr:    cfg.Addr,
-		Handler: handler,
+		Addr:              cfg.Addr,
+		Handler:           handler,
+		ReadHeaderTimeout: readHeaderTimeout,
 	}
 
 	return &App{
