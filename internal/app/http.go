@@ -40,6 +40,7 @@ func registerWebhookRoutes(
 		server.HookHandlerOptions{
 			BaseURL:     cfg.BaseURL,
 			MaxBodySize: cfg.MaxBodySize,
+			ReadOnly:    cfg.ReadOnly,
 		},
 	)
 

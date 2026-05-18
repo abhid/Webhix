@@ -16,7 +16,9 @@ const (
 	flagMaxBodySize    = "max-body-size"
 	flagTrustedProxies = "trusted-proxies"
 
-	flagRetention = "retention"
+	flagRetention   = "retention"
+	flagMaxRequests = "max-requests"
+	flagReadonly    = "readonly"
 )
 
 func RegisterFlags(cmd *cobra.Command, cfg *config.Config, opt *Options) {
@@ -28,8 +30,12 @@ func RegisterFlags(cmd *cobra.Command, cfg *config.Config, opt *Options) {
 	flags.StringVar(&cfg.BaseURL, flagBaseURL, cfg.BaseURL, "public base URL used for endpoint links")
 	flags.StringVar(&cfg.Password, flagPassword, cfg.Password, "basic auth password (env: WEBHIX_PASSWORD)")
 	flags.StringVar(&cfg.SecretKey, flagSecretKey, cfg.SecretKey, "API secret key via X-Webhix-Key or Bearer (env: WEBHIX_SECRET_KEY)")
+
 	flags.Int64Var(&cfg.MaxBodySize, flagMaxBodySize, cfg.MaxBodySize, "maximum webhook request body size in bytes")
+	flags.Int64Var(&cfg.MaxRequests, flagMaxRequests, cfg.MaxRequests, "TODO")
+	flags.BoolVar(&cfg.ReadOnly, flagReadonly, cfg.ReadOnly, "start Webhix in read-only mode")
+
 	flags.StringSliceVar(&cfg.TrustedProxies, flagTrustedProxies, cfg.TrustedProxies, "trusted proxy CIDRs")
 
-	flags.DurationVarP(&opt.Retention, flagRetention, "re", opt.Retention, "TODO")
+	flags.DurationVar(&opt.Retention, flagRetention, opt.Retention, "TODO")
 }

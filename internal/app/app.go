@@ -87,17 +87,3 @@ func (a *App) Shutdown(ctx context.Context) error {
 
 	return nil
 }
-
-type ServeOptions struct {
-	Retention time.Duration
-}
-
-func (a *App) RunServe(ctx context.Context, opts ServeOptions) error {
-	go func() {
-		if _, err := a.services.serve.RetentionCleaner(ctx, opts.Retention); err != nil {
-			slog.Error("retention cleaner", "err", err)
-		}
-	}()
-
-	return a.Start(ctx)
-}

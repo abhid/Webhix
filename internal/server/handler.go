@@ -26,6 +26,7 @@ type HookService interface {
 type HookHandlerOptions struct {
 	BaseURL     string
 	MaxBodySize int64
+	ReadOnly    bool
 }
 
 type HookHandler struct {
@@ -59,6 +60,10 @@ func (h *HookHandler) RegisterRoutes() {
 }
 
 func (h *HookHandler) CreateEndpoint(w http.ResponseWriter, r *http.Request) {
+	if h.readOnly(w) {
+		return
+	}
+
 	contract, err := DecodeContract[CreateEndpointRequestContract](r)
 	if err != nil {
 		slog.Error("create endpoint", "err", err)
@@ -89,6 +94,10 @@ func (h *HookHandler) CreateEndpoint(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *HookHandler) ReceiveWebhook(w http.ResponseWriter, r *http.Request) {
+	if h.readOnly(w) {
+		return
+	}
+
 	token := r.PathValue("token")
 
 	headersJSON, err := json.Marshal(r.Header)
@@ -250,6 +259,10 @@ func (h *HookHandler) GetResponse(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *HookHandler) SetResponse(w http.ResponseWriter, r *http.Request) {
+	if h.readOnly(w) {
+		return
+	}
+
 	token := r.PathValue("token")
 
 	contract, err := DecodeContract[SetHookResponseRequestContract](r)
@@ -289,4 +302,13 @@ func (h *HookHandler) SetResponse(w http.ResponseWriter, r *http.Request) {
 	}
 
 	SendSuccess(w, http.StatusOK, data)
+}
+
+func (h *HookHandler) readOnly(w http.ResponseWriter) bool {
+	if !h.opts.ReadOnly {
+		return false
+	}
+
+	SendError(w, http.StatusForbidden, ErrReadOnly)
+	return true
 }

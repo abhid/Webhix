@@ -9,6 +9,7 @@ const (
 	ErrCodeInternal        = "INTERNAL_ERROR"
 	ErrCodeBadRequest      = "BAD_REQUEST"
 	ErrCodePayloadTooLarge = "PAYLOAD_TOO_LARGE"
+	ErrCodeReadOnly        = "READ_ONLY"
 )
 
 var (
@@ -50,5 +51,10 @@ var (
 	ErrPayloadTooLarge = ErrorContract{
 		Code:    ErrCodePayloadTooLarge,
 		Message: "Payload too large",
+	}
+
+	ErrReadOnly = ErrorContract{
+		Code:    ErrCodeReadOnly,
+		Message: "Read-only mode is enabled",
 	}
 )
