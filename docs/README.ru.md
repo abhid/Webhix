@@ -1,30 +1,53 @@
 # Webhix
 
+[![Release](https://img.shields.io/github/v/release/gaisbax/webhix)](https://github.com/gaisbax/webhix/releases)
+[![License](https://img.shields.io/badge/license-AGPL--3.0-blue)](../LICENSE)
+[![Go Report Card](https://goreportcard.com/badge/github.com/gaisbax/webhix)](https://goreportcard.com/report/github.com/gaisbax/webhix)
+[![Docker](https://img.shields.io/badge/docker-ghcr.io-blue)](https://github.com/gaisbax/webhix/pkgs/container/webhix)
 [![EN](https://img.shields.io/badge/lang-en-gray)](../README.md)
+[![Contributing](https://img.shields.io/badge/contributing-guide-brightgreen)](CONTRIBUTING.ru.md)
 
 Self-hosted инспектор вебхуков. Один бинарник, SQLite, никаких внешних зависимостей.
 
-webhook.site удобен, но отправляет все данные на чужой сервер. Stripe payload-ы, OAuth токены, персональные данные - всё это уходит из вашей сети. Многие компании блокируют его по этой причине. Webhix работает на вашей инфраструктуре, хранит всё локально и не мешает работе.
+webhook.site удобен, но отправляет все данные на чужой сервер. Stripe payload-ы, OAuth-токены, персональные данные — всё это уходит из вашей сети. Многие компании блокируют его по корпоративной политике безопасности. Webhix работает на вашей инфраструктуре и хранит всё локально.
 
-## Что умеет
+![Webhix UI](screenshot.png)
 
-Создаёте endpoint, направляете на него вебхуки и смотрите что приходит. Каждый запрос сохраняется полностью - заголовки, тело, query параметры, IP, время, content-type, размер. Интерфейс обновляется без перезагрузки страницы.
+## Возможности
 
-Помимо просмотра:
+- 📡 Захват любых HTTP-методов — заголовки, тело, query-параметры, IP, время, content-type, размер
+- 🔴 Обновление UI в реальном времени через SSE — без перезагрузки страницы
+- 🪞 Replay любого запроса одним кликом
+- 🎭 Кастомные ответы — настройте статус, заголовки и тело (лёгкий mock-сервер)
+- 🔁 Forwarding через CLI: `webhix forward <token> --to localhost:3000`
+- 📋 Экспорт как curl — скопируйте любой запрос готовой командой
+- 🔍 Полнотекстовый поиск и фильтр по HTTP-методу
+- 🔒 Базовая авторизация из коробки
+- 🐳 Docker, Compose или standalone бинарник
+- 💾 SQLite по умолчанию — Redis и Postgres не нужны
 
-- **Replay** - повторить любой запрос одним кликом, можно с изменениями
-- **Кастомные ответы** - настроить статус код, заголовки и тело ответа вашего endpoint-а (удобно как лёгкий mock-сервер)
-- **Forwarding через CLI** - проксировать входящие запросы на локальный порт: `webhix forward <token> --to localhost:3000`
-- **Экспорт** - скопировать любой запрос как готовую команду curl или HTTPie
+## Почему не webhook.site / smee.io / webhook-tester?
+
+|                  | Webhix         | webhook.site (self-hosted)     | smee.io         | tarampampam/webhook-tester  |
+| ---------------- | -------------- | ------------------------------ | --------------- | --------------------------- |
+| Self-hosted      | ✅             | ✅                             | ❌              | ✅                          |
+| Один бинарник    | ✅             | ❌ PHP + Composer + MySQL      | ❌              | ❌ Redis или fs driver      |
+| История запросов | ✅             | ✅                             | ❌              | ✅                          |
+| Живой UI         | ✅             | ✅                             | ❌              | ✅                          |
+| Replay           | ✅             | ❌                             | ❌              | ❌                          |
+| CLI forwarding   | ✅ встроен     | ❌                             | ✅ только это   | ❌ нужен ngrok              |
+| Кастомные ответы | ✅             | ❌                             | ❌              | ❌                          |
 
 ## Быстрый старт
 
 ### Бинарник
 
 ```sh
-curl -fsSL https://webhix.dev/install.sh | sh
+curl -fsSL https://webhix.online/install.sh | sh
 webhix serve --base-url https://hooks.yourdomain.com
 ```
+
+Или скачайте вручную со страницы [releases](https://github.com/gaisbax/webhix/releases/latest).
 
 ### Docker
 
@@ -57,23 +80,34 @@ URL endpoint-ов формируется по шаблону `https://<base-url>
 
 ## Авторизация
 
-По умолчанию однопользовательский режим. Пароль задаётся через env:
+Авторизация обязательна. Задайте хотя бы одно из:
 
 ```sh
+# Пароль для входа через браузер (Basic Auth)
 WEBHIX_PASSWORD=yourpassword webhix serve
+
+# Секретный ключ для API и CLI (заголовок Bearer / X-Webhix-Key)
+WEBHIX_SECRET_KEY=yourkey webhix serve
+
+# Оба сразу
+webhix serve --password yourpassword --secret-key yourkey
 ```
+
+URL для приёма вебхуков (`/r/<token>`) всегда публичны — авторизация там не нужна.
 
 ## Обратный прокси
 
-Работает за Caddy, Nginx, Traefik. Автоматически читает заголовки `X-Forwarded-*`. Укажите `WEBHIX_BASE_URL` чтобы совпадал с вашим публичным доменом.
+Работает за Caddy, Nginx, Traefik. Автоматически читает заголовки `X-Forwarded-*`. Укажите `--base-url` или `WEBHIX_BASE_URL` чтобы совпадал с вашим публичным доменом.
 
 ## Конфигурация
 
-| Env переменная | По умолчанию | Описание |
-| -------------- | ------------ | -------- |
-| `WEBHIX_BASE_URL` | `http://localhost:8080` | Публичный URL для генерации ссылок на endpoint-ы |
-| `WEBHIX_ADDR` | `:8080` | Адрес для прослушивания (например `0.0.0.0:9000`) |
-| `WEBHIX_DB_PATH` | `./data` | Путь к директории с SQLite базой данных |
+| Env переменная        | По умолчанию           | Описание                                          |
+| --------------------- | ---------------------- | ------------------------------------------------- |
+| `WEBHIX_BASE_URL`     | `http://localhost:8080`| Публичный URL для генерации ссылок на endpoint-ы  |
+| `WEBHIX_ADDR`         | `:8080`                | Адрес для прослушивания (например `0.0.0.0:9000`) |
+| `WEBHIX_DB_PATH`      | `./data`               | Путь к директории с SQLite базой данных           |
+| `WEBHIX_PASSWORD`     | —                      | Пароль Basic Auth                                 |
+| `WEBHIX_SECRET_KEY`   | —                      | API секретный ключ (Bearer / X-Webhix-Key)        |
 
 ## Технические детали
 
@@ -81,7 +115,7 @@ WEBHIX_PASSWORD=yourpassword webhix serve
 - SQLite по умолчанию, внешняя база не нужна
 - UI встроен в бинарник через `go:embed`
 - Работает на Linux, macOS, Windows (amd64 + arm64)
-- Потребление памяти в простое - менее 50 МБ
+- Потребление памяти в простое — менее 50 МБ
 
 ## Roadmap
 
@@ -89,17 +123,17 @@ WEBHIX_PASSWORD=yourpassword webhix serve
 
 - Мультипользовательский режим с базовым RBAC
 - Верификация подписи вебхуков (в стиле Stripe, GitHub)
-- Валидация схемы
+- Валидация схемы запросов
 - Уведомления о новых запросах (Slack, Telegram, Discord)
 - Опциональная поддержка Postgres
 - Авто-HTTPS через Let's Encrypt (без обратного прокси)
 
 ### v0.3+
 
-- Tunnel режим - подключение к управляемому relay для получения публичного URL без сервера
+- Tunnel-режим — подключение к управляемому relay для получения публичного URL без сервера
 
 ## Лицензия
 
 [AGPL-3.0](../LICENSE). Self-hosted использование всегда бесплатно и открыто.
 
-Если хотите запустить Webhix как сетевой сервис с закрытыми изменениями - свяжитесь с нами по вопросу коммерческой лицензии.
+Если хотите запустить Webhix как сетевой сервис с закрытыми изменениями — свяжитесь с нами по вопросу коммерческой лицензии.
