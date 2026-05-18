@@ -1,22 +1,44 @@
 # Webhix
 
-[![RU](https://img.shields.io/badge/lang-ru-blue)](docs/README.ru.md) [![Contributing](https://img.shields.io/badge/contributing-guide-brightgreen)](CONTRIBUTING.md)
+[![Release](https://img.shields.io/github/v/release/gaisbax/webhix)](https://github.com/gaisbax/webhix/releases)
+[![License](https://img.shields.io/badge/license-AGPL--3.0-blue)](LICENSE)
+[![Go Report Card](https://goreportcard.com/badge/github.com/gaisbax/webhix)](https://goreportcard.com/report/github.com/gaisbax/webhix)
+[![Docker](https://img.shields.io/badge/docker-ghcr.io-blue)](https://github.com/gaisbax/webhix/pkgs/container/webhix)
+[![RU](https://img.shields.io/badge/lang-ru-blue)](docs/README.ru.md)
+[![Contributing](https://img.shields.io/badge/contributing-guide-brightgreen)](CONTRIBUTING.md)
 
 Self-hosted webhook inspector. Single binary, SQLite, no external dependencies.
 
-webhook.site is the go-to tool for debugging webhooks, but it sends your data to someone else's server. Stripe payloads, OAuth tokens, PII — all of it leaves your network. A lot of companies block it outright for that reason. Webhix runs on your own infrastructure, stores everything locally, and stays out of your way.
+webhook.site is the go-to tool for debugging webhooks, but it sends your data to someone else's server. Stripe payloads, OAuth tokens, PII — all of it leaves your network. A lot of companies block it outright for that reason. Webhix runs on your own infrastructure and stores everything locally.
 
-## What it does
+![Webhix UI](docs/screenshot.png)
 
-You create an endpoint, point your webhook source at it, and watch requests come in. Every request is captured in full — headers, body, query params, IP, timestamp, content type, size. The UI updates live without a page refresh.
+## Features
 
-Beyond just inspecting requests, you can:
+- 📡 Capture any HTTP method — headers, body, query params, IP, timestamp, content type, size
+- 🔴 Live UI updates via SSE — no page refresh needed
+- 🪞 Replay any request with one click
+- 🎭 Custom responses — configure status, headers, and body (lightweight mock server)
+- 🔁 CLI forwarding to localhost: `webhix forward <token> --to localhost:3000`
+- 📋 Export as curl — copy any request as a runnable command
+- 🔍 Full-text search and filter by HTTP method
+- 🔒 Basic auth out of the box
+- 🐳 Docker, Compose, or standalone binary
+- 💾 SQLite by default — no Redis or Postgres required
 
-- **Replay** any captured request with one click
-- **Custom responses** — configure the status code, headers, and body your endpoint returns to senders (useful as a lightweight mock server)
-- **CLI forwarding** — pipe incoming requests to a local port: `webhix forward <token> --to localhost:3000`
-- **Export as curl** — copy any request as a runnable curl command
-- **Search and filter** — filter requests by text or HTTP method
+## Why not webhook.site / smee.io / webhook-tester?
+
+|                 | Webhix        | webhook.site (self-hosted)    | smee.io        | tarampampam/webhook-tester |
+| --------------- | ------------- | ----------------------------- | -------------- | -------------------------- |
+| Self-hosted     | ✅            | ✅                            | ❌             | ✅                         |
+| Single binary   | ✅            | ❌ PHP + Composer + MySQL     | ❌             | ❌ Redis or fs driver      |
+| Request history | ✅            | ✅                            | ❌             | ✅                         |
+| Live UI         | ✅            | ✅                            | ❌             | ✅                         |
+| Replay          | ✅            | ❌                            | ❌             | ❌                         |
+| CLI forwarding  | ✅ built-in   | ❌                            | ✅ only this   | ❌ needs ngrok             |
+| Custom responses| ✅            | ❌                            | ❌             | ❌                         |
+
+Webhix is the only tool combining single-binary deployment, request replay, and custom responses — no Redis, no PHP, no external tunnel services.
 
 ## Quick start
 
@@ -26,6 +48,8 @@ Beyond just inspecting requests, you can:
 curl -fsSL https://webhix.dev/install.sh | sh
 webhix serve --base-url https://hooks.yourdomain.com
 ```
+
+Or download manually from [releases](https://github.com/gaisbax/webhix/releases/latest).
 
 ### Docker
 
