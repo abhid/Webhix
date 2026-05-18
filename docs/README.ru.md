@@ -43,7 +43,7 @@ webhook.site удобен, но отправляет все данные на ч
 ### Бинарник
 
 ```sh
-curl -fsSL https://webhix.dev/install.sh | sh
+curl -fsSL https://webhix.online/install.sh | sh
 webhix serve --base-url https://hooks.yourdomain.com
 ```
 

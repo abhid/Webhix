@@ -45,7 +45,7 @@ Webhix is the only tool combining single-binary deployment, request replay, and 
 ### Binary
 
 ```sh
-curl -fsSL https://webhix.dev/install.sh | sh
+curl -fsSL https://webhix.online/install.sh | sh
 webhix serve --base-url https://hooks.yourdomain.com
 ```
 
