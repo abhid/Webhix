@@ -62,18 +62,18 @@ func (a *App) Start(ctx context.Context) error {
 		return err
 
 	case <-ctx.Done():
-		return a.Shutdown()
+		return a.Shutdown(ctx)
 	}
 }
 
-func (a *App) Shutdown() error {
+func (a *App) Shutdown(ctx context.Context) error {
 	slog.Info("shutting down")
 	a.events.Close()
 
-	ctx, cancel := context.WithTimeout(context.Background(), shutdownTimeout)
+	shutdownCtx, cancel := context.WithTimeout(ctx, shutdownTimeout)
 	defer cancel()
 
-	if err := a.server.Shutdown(ctx); err != nil {
+	if err := a.server.Shutdown(shutdownCtx); err != nil {
 		slog.Error("graceful shutdown failed, forcing close", "err", err)
 		if closeErr := a.server.Close(); closeErr != nil {
 			slog.Error("server close failed", "err", closeErr)
@@ -82,6 +82,7 @@ func (a *App) Shutdown() error {
 
 	if err := a.deps.close(); err != nil {
 		slog.Error("teardown error", "err", err)
+		return err
 	}
 
 	return nil
