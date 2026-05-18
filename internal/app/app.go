@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/GaIsBAX/Webhix/internal/config"
+	"github.com/GaIsBAX/Webhix/internal/core"
 	"github.com/GaIsBAX/Webhix/internal/server"
 	"github.com/GaIsBAX/Webhix/internal/server/middleware"
 )
@@ -86,6 +87,15 @@ func (a *App) Start(ctx context.Context) error {
 	case <-ctx.Done():
 		return a.Shutdown(ctx)
 	}
+}
+
+func (a *App) RunServe(ctx context.Context, retention time.Duration) error {
+	a.deps.services.serve.StartRetentionCleaner(
+		ctx,
+		core.ServeRunOptions{Retention: retention, ReadOnly: a.config.ReadOnly},
+		func(err error) { slog.Error("retention cleaner", "err", err) },
+	)
+	return a.Start(ctx)
 }
 
 func (a *App) Shutdown(ctx context.Context) error {

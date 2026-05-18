@@ -3,9 +3,9 @@ package serve
 import (
 	"context"
 	"log/slog"
+	"time"
 
 	"github.com/GaIsBAX/Webhix/internal/config"
-	"github.com/GaIsBAX/Webhix/internal/core"
 	"github.com/spf13/cobra"
 )
 
@@ -15,18 +15,10 @@ const (
 )
 
 type Service interface {
-	Run(ctx context.Context, opts core.ServeRunOptions, start core.ServeStartFunc, onRetentionError func(error)) error
+	RunServe(ctx context.Context, retention time.Duration) error
 }
 
-type ServiceFactory interface {
-	New(ctx context.Context, cfg *config.Config) (Service, core.ServeStartFunc, error)
-}
-
-type ServiceFactoryFunc func(ctx context.Context, cfg *config.Config) (Service, core.ServeStartFunc, error)
-
-func (f ServiceFactoryFunc) New(ctx context.Context, cfg *config.Config) (Service, core.ServeStartFunc, error) {
-	return f(ctx, cfg)
-}
+type ServiceFactory func() (Service, error)
 
 func NewCommand(ctx context.Context, cfg *config.Config, factory ServiceFactory) *cobra.Command {
 	opts := DefaultOptions()
@@ -40,13 +32,13 @@ func NewCommand(ctx context.Context, cfg *config.Config, factory ServiceFactory)
 				return err
 			}
 
-			service, start, err := factory.New(ctx, cfg)
+			service, err := factory()
 			if err != nil {
 				slog.Error("init app", "err", err)
 				return err
 			}
 
-			return run(ctx, service, start, cfg, opts)
+			return service.RunServe(ctx, opts.Retention)
 		},
 	}
 
