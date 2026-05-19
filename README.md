@@ -82,7 +82,7 @@ Endpoint URLs follow the pattern `https://<base-url>/r/<token>`.
 
 ## Auth
 
-Auth is required. Set at least one of:
+Auth is optional. If not configured, the dashboard is open to anyone with network access — recommended for local use only. To protect it, set one or both:
 
 ```sh
 # Basic auth password (browser login)
