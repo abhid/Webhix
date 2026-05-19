@@ -8,6 +8,8 @@ import (
 	"syscall"
 
 	"github.com/GaIsBAX/Webhix/internal/app"
+	"github.com/GaIsBAX/Webhix/internal/cli"
+	"github.com/GaIsBAX/Webhix/internal/cli/serve"
 	"github.com/GaIsBAX/Webhix/internal/config"
 	_ "github.com/GaIsBAX/Webhix/pkg"
 )
@@ -26,14 +28,12 @@ func main() {
 		os.Exit(1)
 	}
 
-	application, err := app.New(ctx, cfg)
-	if err != nil {
-		slog.Error("up app", "err", err)
-		os.Exit(1)
-	}
+	serveFactory := serve.ServiceFactory(func() (serve.Service, error) {
+		return app.New(ctx, cfg)
+	})
 
-	if err := application.Start(ctx); err != nil {
-		slog.Error("start app", "err", err)
+	if err := cli.Run(ctx, cfg, os.Args[1:], serveFactory); err != nil {
+		slog.Error("run", "err", err)
 		os.Exit(1)
 	}
 }

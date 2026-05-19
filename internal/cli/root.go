@@ -7,20 +7,20 @@ import (
 	"github.com/GaIsBAX/Webhix/internal/cli/serve"
 	"github.com/GaIsBAX/Webhix/internal/cli/version"
 	"github.com/GaIsBAX/Webhix/internal/config"
+	"github.com/GaIsBAX/Webhix/internal/core"
 	"github.com/spf13/cobra"
 )
 
 func NewRootCommand(
 	ctx context.Context,
 	cfg *config.Config,
-	versionService version.Service,
 	serveFactory serve.ServiceFactory,
 ) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:           "webhix",
 		SilenceUsage:  true,
 		SilenceErrors: true,
-		Version:       versionService.Info().Version,
+		Version:       core.WebhixVersion,
 	}
 	cmd.SetVersionTemplate("webhix {{.Version}}\n")
 
@@ -28,7 +28,7 @@ func NewRootCommand(
 
 	cmd.AddCommand(serve.NewCommand(ctx, cfg, serveFactory))
 	cmd.AddCommand(forward.NewCommand(ctx, cfg))
-	cmd.AddCommand(version.NewCommand(ctx, versionService))
+	cmd.AddCommand(version.NewCommand(ctx))
 
 	return cmd
 }

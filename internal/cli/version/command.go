@@ -6,14 +6,11 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/GaIsBAX/Webhix/internal/core"
 	"github.com/GaIsBAX/Webhix/internal/domain"
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v3"
 )
-
-type Service interface {
-	Info() domain.VersionInfo
-}
 
 type versionInfoContract struct {
 	Version string `json:"version" yaml:"version"`
@@ -22,7 +19,8 @@ type versionInfoContract struct {
 	Go      string `json:"go"      yaml:"go"`
 }
 
-func NewCommand(ctx context.Context, service Service) *cobra.Command {
+func NewCommand(ctx context.Context) *cobra.Command {
+	service := core.NewVersion()
 	opts := NewOptions()
 
 	cmd := &cobra.Command{

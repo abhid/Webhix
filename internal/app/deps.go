@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io/fs"
 	"net/http"
 
 	"github.com/GaIsBAX/Webhix/internal/config"
@@ -12,6 +13,7 @@ import (
 	"github.com/GaIsBAX/Webhix/internal/repos"
 	"github.com/GaIsBAX/Webhix/internal/server"
 	"github.com/GaIsBAX/Webhix/internal/store"
+	"github.com/GaIsBAX/Webhix/internal/web"
 	"github.com/GaIsBAX/Webhix/pkg"
 )
 
@@ -47,13 +49,18 @@ func newDependencies(ctx context.Context, cfg *config.Config) (*dependencies, er
 	deps.handlers = newHandlers(&deps)
 	deps.handlers.registerRoutes()
 
+	staticFS, err := fs.Sub(web.Static, "static")
+	if err != nil {
+		return nil, err
+	}
+	mux.Handle("/", http.FileServer(http.FS(staticFS)))
+
 	return &deps, nil
 }
 
 type services struct {
-	hook    *core.Hook
-	serve   *core.Serve
-	version *core.Version
+	hook  *core.Hook
+	serve *core.Serve
 }
 
 func newServices(repos *repositories) *services {
@@ -61,12 +68,10 @@ func newServices(repos *repositories) *services {
 		return pkg.GeneratePrefixedString("ho")
 	})
 	serve := core.NewServe(repos.serve)
-	version := core.NewVersion()
 
 	return &services{
-		hook:    hook,
-		serve:   serve,
-		version: version,
+		hook:  hook,
+		serve: serve,
 	}
 }
 

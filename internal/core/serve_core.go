@@ -11,8 +11,6 @@ type ServeRunOptions struct {
 	ReadOnly  bool
 }
 
-type ServeStartFunc func(context.Context) error
-
 type ServeRepository interface {
 	DeleteWebhookRequestsOlderThan(ctx context.Context, retention time.Duration) (int64, error)
 	GetCountRequests(ctx context.Context) (int64, error)
@@ -52,11 +50,6 @@ func (s *Serve) RetentionCleaner(ctx context.Context, retention time.Duration) (
 			return 0, ctx.Err()
 		}
 	}
-}
-
-func (s *Serve) Run(ctx context.Context, opts ServeRunOptions, start ServeStartFunc, onRetentionError func(error)) error {
-	s.StartRetentionCleaner(ctx, opts, onRetentionError)
-	return start(ctx)
 }
 
 func (s *Serve) StartRetentionCleaner(ctx context.Context, opts ServeRunOptions, onError func(error)) {
