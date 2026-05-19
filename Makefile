@@ -9,7 +9,7 @@ GO ?= go
 GOLANGCI_LINT ?= $(TOOLS_DIR)/golangci-lint
 
 GOFLAGS ?=
-PKGS := $(shell $(GO) list -f '{{.Dir}}' ./... | grep -v '/node_modules/' | sed 's#^$(CURDIR)#.#')
+PKGS := $(shell $(GO) list -f '{{.Dir}}' ./... | grep -v '/node_modules/' | sed 's|^$(CURDIR)|.|')
 LDFLAGS ?= -s -w
 
 .PHONY: deps tidy tidy-check fmt fmt-check vet lint lint-install test test-race cover check ci build build-prod run clean web-deps web-dev web-build web-check
