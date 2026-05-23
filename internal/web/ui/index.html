@@ -82,14 +82,9 @@
           <aside class="endpoints-panel">
             <div class="panel-header">
               <h3>Endpoints</h3>
-              <span class="count-badge">1</span>
+              <span class="count-badge" id="endpointsPanelCount">0</span>
             </div>
-            <button class="endpoint-card active">
-              <span class="method-badge method-POST">POST</span>
-              <strong id="endpointName">active-endpoint</strong>
-              <small id="endpointPath">/r/current-token</small>
-              <span class="endpoint-count">Live</span>
-            </button>
+            <div id="endpointsList"></div>
           </aside>
 
           <div class="detail-panel" id="detailPanel">

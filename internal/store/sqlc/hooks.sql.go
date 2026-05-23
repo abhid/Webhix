@@ -153,6 +153,40 @@ func (q *Queries) GetHookResponseByHookID(ctx context.Context, hookID int64) (Ho
 	return i, err
 }
 
+const listHooks = `-- name: ListHooks :many
+SELECT id, token, name, created_at, updated_at
+FROM hooks
+ORDER BY created_at DESC`
+
+func (q *Queries) ListHooks(ctx context.Context) ([]Hook, error) {
+	rows, err := q.db.QueryContext(ctx, listHooks)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Hook
+	for rows.Next() {
+		var i Hook
+		if err := rows.Scan(
+			&i.ID,
+			&i.Token,
+			&i.Name,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listWebhookRequestsByHookID = `-- name: ListWebhookRequestsByHookID :many
 SELECT id, hook_id, method, path, query, headers, body, remote_addr, content_type, body_size, received_at
 FROM webhook_requests

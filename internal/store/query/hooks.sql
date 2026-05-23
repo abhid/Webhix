@@ -66,6 +66,11 @@ ON CONFLICT (hook_id) DO UPDATE SET
     updated_at = CURRENT_TIMESTAMP
 RETURNING id, hook_id, status_code, headers, body, created_at, updated_at;
 
+-- name: ListHooks :many
+SELECT id, token, name, created_at, updated_at
+FROM hooks
+ORDER BY created_at DESC;
+
 -- name: GetHookResponseByHookID :one
 SELECT id, hook_id, status_code, headers, body, created_at, updated_at
 FROM hook_responses

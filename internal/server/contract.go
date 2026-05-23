@@ -19,6 +19,14 @@ type CreateEndpointResponseContract struct {
 	URL   string `json:"url"`
 }
 
+type EndpointListItemContract struct {
+	ID        int64     `json:"id"`
+	Token     string    `json:"token"`
+	Name      string    `json:"name,omitempty"`
+	URL       string    `json:"url"`
+	CreatedAt time.Time `json:"createdAt"`
+}
+
 type WebhookRequestContract struct {
 	ID          int64     `json:"id"`
 	HookID      int64     `json:"hookId"`

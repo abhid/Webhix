@@ -78,6 +78,20 @@ func (r *Hook) ListWebhookRequests(ctx context.Context, hookID int64) ([]domain.
 	return result, nil
 }
 
+func (r *Hook) ListHooks(ctx context.Context) ([]domain.Hook, error) {
+	rows, err := r.q.ListHooks(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	result := make([]domain.Hook, len(rows))
+	for i, row := range rows {
+		result[i] = toDomainHook(row)
+	}
+
+	return result, nil
+}
+
 func (r *Hook) GetHookResponse(ctx context.Context, hookID int64) (domain.HookResponse, error) {
 	row, err := r.q.GetHookResponseByHookID(ctx, hookID)
 	if err != nil {

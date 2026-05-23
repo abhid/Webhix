@@ -15,6 +15,7 @@ import (
 const DefaultMaxBodySize int64 = 5 << 20 // 5MB
 
 type HookService interface {
+	ListHooks(ctx context.Context) ([]domain.Hook, error)
 	CreateHook(ctx context.Context, token string) (domain.Hook, error)
 	ReceiveWebhook(ctx context.Context, token string, params domain.CreateWebhookRequestParams) (domain.WebhookRequest, domain.HookResponse, error)
 	ListWebhookRequests(ctx context.Context, token string) ([]domain.WebhookRequest, error)
@@ -54,12 +55,42 @@ func NewHook(deps *HookDeps) *Hook {
 }
 
 func (h *Hook) RegisterRoutes() {
+	h.deps.Mux.HandleFunc("GET /api/endpoints", h.ListEndpoints)
 	h.deps.Mux.HandleFunc("POST /api/endpoints", h.CreateEndpoint)
 	h.deps.Mux.HandleFunc("GET /api/endpoints/{token}/requests", h.ListRequests)
 	h.deps.Mux.HandleFunc("GET /api/endpoints/{token}/events", h.StreamEvents)
 	h.deps.Mux.HandleFunc("GET /api/endpoints/{token}/response", h.GetResponse)
 	h.deps.Mux.HandleFunc("PUT /api/endpoints/{token}/response", h.SetResponse)
 	h.deps.Mux.HandleFunc("/r/{token}", h.ReceiveWebhook)
+}
+
+func (h *Hook) ListEndpoints(w http.ResponseWriter, r *http.Request) {
+	hooks, err := h.deps.Service.ListHooks(r.Context())
+	if err != nil {
+		slog.Error("list endpoints", "err", err)
+		SendError(w, http.StatusInternalServerError, ErrInternal)
+		return
+	}
+
+	contracts := make([]EndpointListItemContract, len(hooks))
+	for i, hook := range hooks {
+		contracts[i] = EndpointListItemContract{
+			ID:        hook.ID,
+			Token:     hook.Token,
+			Name:      hook.Name,
+			URL:       h.deps.Opts.BaseURL + "/r/" + hook.Token,
+			CreatedAt: hook.CreatedAt,
+		}
+	}
+
+	data, err := json.Marshal(contracts)
+	if err != nil {
+		slog.Error("marshal endpoints", "err", err)
+		SendError(w, http.StatusInternalServerError, ErrInternal)
+		return
+	}
+
+	SendSuccess(w, http.StatusOK, data)
 }
 
 func (h *Hook) CreateEndpoint(w http.ResponseWriter, r *http.Request) {
