@@ -14,6 +14,7 @@ type TokenGenerator func() string
 type HookRepository interface {
 	CreateHook(ctx context.Context, token string) (domain.Hook, error)
 	GetHookByToken(ctx context.Context, token string) (domain.Hook, error)
+	ListHooks(ctx context.Context) ([]domain.Hook, error)
 	CreateWebhookRequest(ctx context.Context, params domain.CreateWebhookRequestParams) (domain.WebhookRequest, error)
 	ListWebhookRequests(ctx context.Context, hookID int64) ([]domain.WebhookRequest, error)
 	GetHookResponse(ctx context.Context, hookID int64) (domain.HookResponse, error)
@@ -34,6 +35,10 @@ func NewHook(repo HookRepository, generateToken TokenGenerator) *Hook {
 		repo:          repo,
 		generateToken: generateToken,
 	}
+}
+
+func (s *Hook) ListHooks(ctx context.Context) ([]domain.Hook, error) {
+	return s.repo.ListHooks(ctx)
 }
 
 func (s *Hook) CreateHook(ctx context.Context, token string) (domain.Hook, error) {

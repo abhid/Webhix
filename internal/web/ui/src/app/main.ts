@@ -3,8 +3,10 @@ import './styles.css';
 import {
   connectEvents,
   createEndpoint,
+  fetchEndpoints,
   fetchRequests,
 } from '../features/endpoint-session/api/endpoint-api';
+import type { Endpoint } from '../features/endpoint-session/api/endpoint-api';
 import { getElements } from './dom';
 import { renderRequestList, refreshRelativeTimes } from '../widgets/request-list/request-list';
 import { renderSelectedDetail, showPlaceholder } from '../widgets/request-detail/request-detail';
@@ -26,6 +28,7 @@ const state = createInitialState();
 const elements = getElements();
 let eventSource: EventSource | null = null;
 let toastTimer: ReturnType<typeof setTimeout> | undefined;
+let currentToken: string | null = null;
 
 init();
 
@@ -82,6 +85,7 @@ function loadToken(): void {
 }
 
 function activateToken(token: string): void {
+  currentToken = token;
   resetForToken(state, token);
 
   const url = new URL(location.href);
@@ -89,9 +93,7 @@ function activateToken(token: string): void {
   history.replaceState(null, '', url.toString());
 
   elements.pillURL.textContent = `${location.origin}/r/${token}`;
-  document.getElementById('endpointName')?.replaceChildren(document.createTextNode(token));
   document.getElementById('endpointTitle')?.replaceChildren(document.createTextNode(token));
-  document.getElementById('endpointPath')?.replaceChildren(document.createTextNode(`/r/${token}`));
   elements.pillArea.classList.remove('hidden');
   elements.overlay.classList.add('hidden');
   elements.mainArea.classList.remove('hidden');
@@ -99,7 +101,42 @@ function activateToken(token: string): void {
   renderRequestList(elements, state);
   showPlaceholder(elements);
   void loadHistory(token);
+  void loadEndpoints();
   connectSSE(token);
+}
+
+async function loadEndpoints(): Promise<void> {
+  try {
+    const eps = await fetchEndpoints();
+    renderEndpointsList(eps);
+  } catch {
+    // silently fail
+  }
+}
+
+function renderEndpointsList(endpoints: Endpoint[]): void {
+  const list = document.getElementById('endpointsList');
+  const countBadge = document.getElementById('endpointsPanelCount');
+  if (!list) return;
+
+  if (countBadge) countBadge.textContent = String(endpoints.length);
+
+  list.innerHTML = '';
+  for (const ep of endpoints) {
+    const btn = document.createElement('button');
+    btn.className = 'endpoint-card' + (ep.token === currentToken ? ' active' : '');
+    btn.dataset.token = ep.token;
+
+    const label = document.createElement('strong');
+    label.textContent = ep.name || ep.token;
+
+    const path = document.createElement('small');
+    path.textContent = `/r/${ep.token}`;
+
+    btn.append(label, path);
+    btn.addEventListener('click', () => activateToken(ep.token));
+    list.appendChild(btn);
+  }
 }
 
 async function createNewEndpoint(): Promise<void> {

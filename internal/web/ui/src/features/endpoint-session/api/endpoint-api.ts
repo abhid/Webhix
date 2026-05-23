@@ -1,5 +1,20 @@
 import type { ApiResponse, WebhookRequest } from '../../../entities/request/model/types';
 
+export interface Endpoint {
+  id: number;
+  token: string;
+  name?: string;
+  url: string;
+  createdAt: string;
+}
+
+export async function fetchEndpoints(): Promise<Endpoint[]> {
+  const response = await fetch('/api/endpoints');
+  const json = (await response.json()) as ApiResponse<Endpoint[]>;
+  if (!json.success) return [];
+  return json.body ?? [];
+}
+
 export async function createEndpoint(): Promise<string> {
   const response = await fetch('/api/endpoints', {
     method: 'POST',
