@@ -3,8 +3,10 @@ package app
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log/slog"
 	"net/http"
+	"net/url"
 	"time"
 
 	"golang.org/x/crypto/acme/autocert"
@@ -96,20 +98,46 @@ func (a *App) startTLS(ctx context.Context) error {
 	a.server.TLSConfig = m.TLSConfig()
 
 	redirect := &http.Server{
-		Addr:              ":80",
-		Handler:           m.HTTPHandler(http.RedirectHandler("https://"+a.config.TLSDomain+"/", http.StatusMovedPermanently)),
+		Addr: ":80",
+		Handler: m.HTTPHandler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			target := &url.URL{
+				Scheme:   "https",
+				Host:     a.config.TLSDomain,
+				Path:     r.URL.Path,
+				RawQuery: r.URL.RawQuery,
+			}
+			w.Header().Set("Location", target.String())
+			w.WriteHeader(http.StatusMovedPermanently)
+		})),
 		ReadHeaderTimeout: readHeaderTimeout,
 	}
 	defer shutdownServer(redirect, "redirect server")
 
+	serverErr := make(chan error, 2)
+
 	go func() {
-		if err := redirect.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			slog.Error("http redirect server", "err", err)
+		err := redirect.ListenAndServe()
+		if !errors.Is(err, http.ErrServerClosed) {
+			serverErr <- fmt.Errorf("redirect server (:80): %w", err)
 		}
 	}()
 
+	go func() {
+		err := a.server.ListenAndServeTLS("", "")
+		if errors.Is(err, http.ErrServerClosed) {
+			err = nil
+		}
+		serverErr <- err
+	}()
+
 	slog.Info("webhix started (TLS)", "domain", a.config.TLSDomain, "base_url", a.config.BaseURL)
-	return a.run(ctx, func() error { return a.server.ListenAndServeTLS("", "") })
+
+	select {
+	case err := <-serverErr:
+		return err
+	case <-ctx.Done():
+		return a.Shutdown(ctx)
+	}
 }
 
 func (a *App) run(ctx context.Context, listen func() error) error {
