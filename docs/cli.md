@@ -2316,81 +2316,53 @@ Skips confirmation.
 
 Tunnel mode belongs to the v0.3+ roadmap.
 
-It would connect a local Webhix instance to a managed relay and provide a public URL without requiring the user to deploy Webhix behind a public reverse proxy.
+It exposes a local port via a public URL on the Webhix managed relay (`webhix.online`),
+without requiring a VPS or reverse proxy. Protocol spec: `docs/tunnel-protocol.md`.
 
-## `webhix tunnel`
+## `webhix tunnel <port>`
 
-Starts tunnel mode.
+Exposes a local port to the internet.
 
-Example:
+Examples:
 
 ```sh
-webhix tunnel
+webhix tunnel 3000
+webhix tunnel 3000 --subdomain myapp
+webhix tunnel 3000 --auth-token tok_xxx
+webhix tunnel 3000 --relay wss://my.relay/tunnel
 ```
 
 ### Flags
 
 #### `--relay <url>`
 
-Relay server URL.
+Relay server WebSocket URL. Defaults to `wss://relay.webhix.online/tunnel`.
 
 Example:
 
 ```sh
-webhix tunnel --relay https://relay.webhix.dev
+webhix tunnel 3000 --relay wss://tunnel.mycompany.com/tunnel
 ```
 
-#### `--token <token>`
+#### `--auth-token <token>`
 
-Tunnel authentication token.
+Pro auth token from webhix.online dashboard (env: `WEBHIX_TUNNEL_TOKEN`).
 
 Example:
 
 ```sh
-webhix tunnel --token "$WEBHIX_TUNNEL_TOKEN"
+webhix tunnel 3000 --auth-token tok_xxx
 ```
 
-#### `--token-file <path>`
+#### `--subdomain <name>`
 
-Reads the tunnel token from a file.
+Reserved subdomain to request (Pro only).
 
 Example:
 
 ```sh
-webhix tunnel --token-file ~/.config/webhix/tunnel-token
+webhix tunnel 3000 --subdomain myapp
 ```
-
-#### `--addr <addr>`
-
-Local Webhix server address to expose.
-
-Example:
-
-```sh
-webhix tunnel --addr http://localhost:8080
-```
-
-#### `--region <region>`
-
-Preferred relay region.
-
-Example:
-
-```sh
-webhix tunnel --region eu
-```
-
-#### `--print-url`
-
-Prints only the assigned public URL.
-
-Example:
-
-```sh
-webhix tunnel --print-url
-```
-
-Useful for scripts.
 
 ## Suggested command groups
 
