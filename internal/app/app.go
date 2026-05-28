@@ -107,7 +107,7 @@ func (a *App) startTLS(ctx context.Context) error {
 				RawQuery: r.URL.RawQuery,
 			}
 			w.Header().Set("Location", target.String())
-			w.WriteHeader(http.StatusMovedPermanently)
+			w.WriteHeader(http.StatusPermanentRedirect)
 		})),
 		ReadHeaderTimeout: readHeaderTimeout,
 	}
@@ -134,6 +134,7 @@ func (a *App) startTLS(ctx context.Context) error {
 
 	select {
 	case err := <-serverErr:
+		shutdownServer(a.server, "main server")
 		return err
 	case <-ctx.Done():
 		return a.Shutdown(ctx)
