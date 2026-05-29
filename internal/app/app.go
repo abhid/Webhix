@@ -3,9 +3,13 @@ package app
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log/slog"
 	"net/http"
+	"net/url"
 	"time"
+
+	"golang.org/x/crypto/acme/autocert"
 
 	"github.com/GaIsBAX/Webhix/internal/config"
 	"github.com/GaIsBAX/Webhix/internal/core"
@@ -72,12 +76,79 @@ func newHTTPHandler(mux *http.ServeMux, cfg *config.Config) (http.Handler, error
 }
 
 func (a *App) Start(ctx context.Context) error {
+	if a.config.TLSDomain != "" {
+		return a.startTLS(ctx)
+	}
+	return a.startPlain(ctx)
+}
+
+func (a *App) startPlain(ctx context.Context) error {
+	slog.Info("webhix started", "addr", a.config.Addr, "base_url", a.config.BaseURL)
+	return a.run(ctx, a.server.ListenAndServe)
+}
+
+func (a *App) startTLS(ctx context.Context) error {
+	m := &autocert.Manager{
+		Prompt:     autocert.AcceptTOS,
+		HostPolicy: autocert.HostWhitelist(a.config.TLSDomain),
+		Cache:      autocert.DirCache(a.config.TLSCacheDir),
+	}
+
+	a.server.Addr = ":443"
+	a.server.TLSConfig = m.TLSConfig()
+
+	redirect := &http.Server{
+		Addr: ":80",
+		Handler: m.HTTPHandler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			target := &url.URL{
+				Scheme:   "https",
+				Host:     a.config.TLSDomain,
+				Path:     r.URL.Path,
+				RawQuery: r.URL.RawQuery,
+			}
+			w.Header().Set("Location", target.String())
+			w.WriteHeader(http.StatusPermanentRedirect)
+		})),
+		ReadHeaderTimeout: readHeaderTimeout,
+	}
+	defer shutdownServer(redirect, "redirect server")
+
+	serverErr := make(chan error, 2)
+
+	go func() {
+		err := redirect.ListenAndServe()
+		if !errors.Is(err, http.ErrServerClosed) {
+			serverErr <- fmt.Errorf("redirect server (:80): %w", err)
+		}
+	}()
+
+	go func() {
+		err := a.server.ListenAndServeTLS("", "")
+		if errors.Is(err, http.ErrServerClosed) {
+			err = nil
+		}
+		serverErr <- err
+	}()
+
+	slog.Info("webhix started (TLS)", "domain", a.config.TLSDomain, "base_url", a.config.BaseURL)
+
+	select {
+	case err := <-serverErr:
+		shutdownServer(a.server, "main server")
+		return err
+	case <-ctx.Done():
+		return a.Shutdown(ctx)
+	}
+}
+
+func (a *App) run(ctx context.Context, listen func() error) error {
 	serverErr := make(chan error, 1)
 	go func() {
-		slog.Info("webhix started", "addr", a.config.Addr, "base_url", a.config.BaseURL)
-		if err := a.server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			serverErr <- err
+		err := listen()
+		if errors.Is(err, http.ErrServerClosed) {
+			err = nil
 		}
+		serverErr <- err
 	}()
 
 	select {
@@ -86,6 +157,15 @@ func (a *App) Start(ctx context.Context) error {
 
 	case <-ctx.Done():
 		return a.Shutdown(ctx)
+	}
+}
+
+func shutdownServer(s *http.Server, name string) {
+	ctx, cancel := context.WithTimeout(context.Background(), shutdownTimeout)
+	defer cancel()
+
+	if err := s.Shutdown(ctx); err != nil {
+		slog.Error("shutdown", "server", name, "err", err)
 	}
 }
 
@@ -102,7 +182,7 @@ func (a *App) Shutdown(ctx context.Context) error {
 	slog.Info("shutting down")
 	a.deps.infra.hub.Close()
 
-	shutdownCtx, cancel := context.WithTimeout(ctx, shutdownTimeout)
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), shutdownTimeout)
 	defer cancel()
 
 	if err := a.server.Shutdown(shutdownCtx); err != nil {

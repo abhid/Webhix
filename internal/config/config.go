@@ -20,6 +20,9 @@ type Config struct {
 	TrustedProxies []string `env:"WEBHIX_TRUSTED_PROXIES"`
 	MaxRequests    int64    `env:"WEBHIX_MAX_REQUESTS" env-default:"10000"`
 	ReadOnly       bool     `env:"WEBHIX_READONLY"`
+
+	TLSDomain   string `env:"WEBHIX_TLS_DOMAIN"`
+	TLSCacheDir string `env:"WEBHIX_TLS_CACHE_DIR" env-default:"./data/certs"`
 }
 
 func LoadConfig() (*Config, error) {
