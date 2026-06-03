@@ -19,6 +19,10 @@ type HookRepository interface {
 	ListWebhookRequests(ctx context.Context, hookID int64) ([]domain.WebhookRequest, error)
 	GetHookResponse(ctx context.Context, hookID int64) (domain.HookResponse, error)
 	UpsertHookResponse(ctx context.Context, hookID int64, params domain.UpsertHookResponseParams) (domain.HookResponse, error)
+	ListNotificationChannels(ctx context.Context, hookID int64) ([]domain.NotificationChannel, error)
+	GetNotificationChannel(ctx context.Context, hookID int64, provider string) (domain.NotificationChannel, error)
+	UpsertNotificationChannel(ctx context.Context, hookID int64, provider string, config map[string]string) (domain.NotificationChannel, error)
+	DeleteNotificationChannel(ctx context.Context, hookID int64, provider string) error
 }
 
 type Hook struct {
@@ -106,6 +110,34 @@ func (s *Hook) SetHookResponse(ctx context.Context, token string, params domain.
 	}
 
 	return s.repo.UpsertHookResponse(ctx, hook.ID, params)
+}
+
+func (s *Hook) ListChannels(ctx context.Context, token string) ([]domain.NotificationChannel, error) {
+	hook, err := s.repo.GetHookByToken(ctx, token)
+	if err != nil {
+		return nil, err
+	}
+	return s.repo.ListNotificationChannels(ctx, hook.ID)
+}
+
+func (s *Hook) UpsertChannel(ctx context.Context, token, provider string, config map[string]string) (domain.NotificationChannel, error) {
+	hook, err := s.repo.GetHookByToken(ctx, token)
+	if err != nil {
+		return domain.NotificationChannel{}, err
+	}
+	return s.repo.UpsertNotificationChannel(ctx, hook.ID, provider, config)
+}
+
+func (s *Hook) DeleteChannel(ctx context.Context, token, provider string) error {
+	hook, err := s.repo.GetHookByToken(ctx, token)
+	if err != nil {
+		return err
+	}
+	return s.repo.DeleteNotificationChannel(ctx, hook.ID, provider)
+}
+
+func (s *Hook) GetChannelsForHookID(ctx context.Context, hookID int64) ([]domain.NotificationChannel, error) {
+	return s.repo.ListNotificationChannels(ctx, hookID)
 }
 
 func defaultHookResponse() domain.HookResponse {

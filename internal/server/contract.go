@@ -47,6 +47,11 @@ type HookResponseContract struct {
 	Body       string            `json:"body"`
 }
 
+type NotificationContract struct {
+	Provider string            `json:"provider"`
+	Config   map[string]string `json:"config"`
+}
+
 type SetHookResponseRequestContract struct {
 	StatusCode int               `json:"statusCode"`
 	Headers    map[string]string `json:"headers"`

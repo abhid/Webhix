@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"log/slog"
 
 	"github.com/GaIsBAX/Webhix/internal/domain"
 	"github.com/GaIsBAX/Webhix/internal/store/sqlc"
@@ -121,6 +122,79 @@ func (r *Hook) UpsertHookResponse(ctx context.Context, hookID int64, params doma
 	}
 
 	return toDomainHookResponse(row), nil
+}
+
+func (r *Hook) ListNotificationChannels(ctx context.Context, hookID int64) ([]domain.NotificationChannel, error) {
+	rows, err := r.q.ListNotificationChannels(ctx, hookID)
+	if err != nil {
+		return nil, err
+	}
+
+	result := make([]domain.NotificationChannel, len(rows))
+	for i, row := range rows {
+		result[i] = toDomainChannel(row)
+	}
+
+	return result, nil
+}
+
+func (r *Hook) GetNotificationChannel(ctx context.Context, hookID int64, provider string) (domain.NotificationChannel, error) {
+	row, err := r.q.GetNotificationChannel(ctx, sqlc.GetNotificationChannelParams{
+		HookID:   hookID,
+		Provider: provider,
+	})
+
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return domain.NotificationChannel{}, domain.ErrNotFound
+		}
+		return domain.NotificationChannel{}, err
+	}
+
+	return toDomainChannel(row), nil
+}
+
+func (r *Hook) UpsertNotificationChannel(ctx context.Context, hookID int64, provider string, config map[string]string) (domain.NotificationChannel, error) {
+	configJSON, err := json.Marshal(config)
+	if err != nil {
+		return domain.NotificationChannel{}, err
+	}
+
+	row, err := r.q.UpsertNotificationChannel(ctx, sqlc.UpsertNotificationChannelParams{
+		HookID:   hookID,
+		Provider: provider,
+		Config:   string(configJSON),
+	})
+
+	if err != nil {
+		return domain.NotificationChannel{}, err
+	}
+
+	return toDomainChannel(row), nil
+}
+
+func (r *Hook) DeleteNotificationChannel(ctx context.Context, hookID int64, provider string) error {
+	return r.q.DeleteNotificationChannel(ctx, sqlc.DeleteNotificationChannelParams{
+		HookID:   hookID,
+		Provider: provider,
+	})
+}
+
+func toDomainChannel(row sqlc.HookNotificationChannel) domain.NotificationChannel {
+	cfg := map[string]string{}
+	if err := json.Unmarshal([]byte(row.Config), &cfg); err != nil {
+		slog.Warn("parse notification channel config", "err", err)
+	}
+
+	return domain.NotificationChannel{
+		ID:        row.ID,
+		HookID:    row.HookID,
+		Provider:  row.Provider,
+		Config:    cfg,
+		Enabled:   row.Enabled != 0,
+		CreatedAt: row.CreatedAt,
+		UpdatedAt: row.UpdatedAt,
+	}
 }
 
 func toDomainHookResponse(row sqlc.HookResponse) domain.HookResponse {

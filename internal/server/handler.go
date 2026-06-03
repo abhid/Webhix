@@ -5,11 +5,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"html"
 	"io"
 	"log/slog"
 	"net/http"
 
 	"github.com/GaIsBAX/Webhix/internal/domain"
+	"github.com/GaIsBAX/Webhix/internal/notify"
 )
 
 const DefaultMaxBodySize int64 = 5 << 20 // 5MB
@@ -21,6 +23,10 @@ type HookService interface {
 	ListWebhookRequests(ctx context.Context, token string) ([]domain.WebhookRequest, error)
 	GetHookResponse(ctx context.Context, token string) (domain.HookResponse, error)
 	SetHookResponse(ctx context.Context, token string, params domain.UpsertHookResponseParams) (domain.HookResponse, error)
+	ListChannels(ctx context.Context, token string) ([]domain.NotificationChannel, error)
+	UpsertChannel(ctx context.Context, token, provider string, config map[string]string) (domain.NotificationChannel, error)
+	DeleteChannel(ctx context.Context, token, provider string) error
+	GetChannelsForHookID(ctx context.Context, hookID int64) ([]domain.NotificationChannel, error)
 }
 
 type EventBroker interface {
@@ -61,6 +67,10 @@ func (h *Hook) RegisterRoutes() {
 	h.deps.Mux.HandleFunc("GET /api/endpoints/{token}/events", h.StreamEvents)
 	h.deps.Mux.HandleFunc("GET /api/endpoints/{token}/response", h.GetResponse)
 	h.deps.Mux.HandleFunc("PUT /api/endpoints/{token}/response", h.SetResponse)
+	h.deps.Mux.HandleFunc("GET /api/endpoints/{token}/notifications", h.GetNotification)
+	h.deps.Mux.HandleFunc("PUT /api/endpoints/{token}/notifications/{provider}", h.SetNotification)
+	h.deps.Mux.HandleFunc("DELETE /api/endpoints/{token}/notifications/{provider}", h.DeleteNotification)
+	h.deps.Mux.HandleFunc("POST /api/endpoints/{token}/notifications/{provider}/test", h.TestNotification)
 	h.deps.Mux.HandleFunc("/r/{token}", h.ReceiveWebhook)
 }
 
@@ -188,6 +198,7 @@ func (h *Hook) ReceiveWebhook(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.deps.Hub.Publish(token, data)
+	go h.sendNotifications(req, token, context.WithoutCancel(r.Context()))
 
 	if customResp.StatusCode > 0 {
 		for k, v := range customResp.Headers {
@@ -338,6 +349,148 @@ func (h *Hook) SetResponse(w http.ResponseWriter, r *http.Request) {
 	}
 
 	SendSuccess(w, http.StatusOK, data)
+}
+
+func (h *Hook) GetNotification(w http.ResponseWriter, r *http.Request) {
+	token := r.PathValue("token")
+
+	channels, err := h.deps.Service.ListChannels(r.Context(), token)
+	if err != nil {
+		if errors.Is(err, domain.ErrNotFound) {
+			SendError(w, http.StatusNotFound, ErrNotFound)
+			return
+		}
+		slog.Error("list notification channels", "err", err)
+		SendError(w, http.StatusInternalServerError, ErrInternal)
+		return
+	}
+
+	contracts := make([]NotificationContract, len(channels))
+	for i, ch := range channels {
+		contracts[i] = NotificationContract{Provider: ch.Provider, Config: ch.Config}
+	}
+
+	data, err := json.Marshal(contracts)
+	if err != nil {
+		SendError(w, http.StatusInternalServerError, ErrInternal)
+		return
+	}
+
+	SendSuccess(w, http.StatusOK, data)
+}
+
+func (h *Hook) SetNotification(w http.ResponseWriter, r *http.Request) {
+	if h.readOnly(w) {
+		return
+	}
+
+	token := r.PathValue("token")
+	provider := r.PathValue("provider")
+
+	contract, err := DecodeRequest[NotificationContract](r)
+	if err != nil {
+		SendError(w, http.StatusBadRequest, ErrBadRequest)
+		return
+	}
+
+	ch, err := h.deps.Service.UpsertChannel(r.Context(), token, provider, contract.Config)
+	if err != nil {
+		if errors.Is(err, domain.ErrNotFound) {
+			SendError(w, http.StatusNotFound, ErrNotFound)
+			return
+		}
+		slog.Error("upsert notification channel", "err", err)
+		SendError(w, http.StatusInternalServerError, ErrInternal)
+		return
+	}
+
+	data, err := json.Marshal(NotificationContract{Provider: ch.Provider, Config: ch.Config})
+	if err != nil {
+		SendError(w, http.StatusInternalServerError, ErrInternal)
+		return
+	}
+
+	SendSuccess(w, http.StatusOK, data)
+}
+
+func (h *Hook) DeleteNotification(w http.ResponseWriter, r *http.Request) {
+	if h.readOnly(w) {
+		return
+	}
+
+	token := r.PathValue("token")
+	provider := r.PathValue("provider")
+
+	if err := h.deps.Service.DeleteChannel(r.Context(), token, provider); err != nil {
+		if errors.Is(err, domain.ErrNotFound) {
+			SendError(w, http.StatusNotFound, ErrNotFound)
+			return
+		}
+		slog.Error("delete notification channel", "err", err)
+		SendError(w, http.StatusInternalServerError, ErrInternal)
+		return
+	}
+
+	SendSuccess(w, http.StatusOK, []byte(`{}`))
+}
+
+func (h *Hook) TestNotification(w http.ResponseWriter, r *http.Request) {
+	token := r.PathValue("token")
+	provider := r.PathValue("provider")
+
+	channels, err := h.deps.Service.ListChannels(r.Context(), token)
+	if err != nil {
+		if errors.Is(err, domain.ErrNotFound) {
+			SendError(w, http.StatusNotFound, ErrNotFound)
+			return
+		}
+		slog.Error("list channels for test", "err", err)
+		SendError(w, http.StatusInternalServerError, ErrInternal)
+		return
+	}
+
+	for _, ch := range channels {
+		if ch.Provider != provider {
+			continue
+		}
+		msg := fmt.Sprintf("✅ Webhix test notification for endpoint <code>/r/%s</code>", html.EscapeString(token))
+		if err := notify.Send(r.Context(), ch.Provider, notify.Config(ch.Config), msg); err != nil {
+			slog.Error("test notification", "provider", provider, "err", err)
+			SendError(w, http.StatusBadGateway, WithDetails(ErrInternal, ErrorDetailContract{
+				Field:   provider,
+				Message: err.Error(),
+			}))
+			return
+		}
+		SendSuccess(w, http.StatusOK, []byte(`{"sent":true}`))
+		return
+	}
+
+	SendError(w, http.StatusNotFound, WithDetails(ErrNotFound, ErrorDetailContract{
+		Field:   "provider",
+		Message: provider + " is not configured for this endpoint",
+	}))
+}
+
+func (h *Hook) sendNotifications(req domain.WebhookRequest, token string, ctx context.Context) {
+	channels, err := h.deps.Service.GetChannelsForHookID(ctx, req.HookID)
+	if err != nil || len(channels) == 0 {
+		return
+	}
+
+	msg := fmt.Sprintf(
+		"📨 <b>New webhook</b>\nEndpoint: <code>/r/%s</code>\nMethod: <b>%s</b>\nPath: <code>%s</code>",
+		html.EscapeString(token), html.EscapeString(req.Method), html.EscapeString(req.Path),
+	)
+
+	for _, ch := range channels {
+		if !ch.Enabled {
+			continue
+		}
+		if err := notify.Send(ctx, ch.Provider, notify.Config(ch.Config), msg); err != nil {
+			slog.Warn("notification failed", "provider", ch.Provider, "token", token, "err", err)
+		}
+	}
 }
 
 func (h *Hook) readOnly(w http.ResponseWriter) bool {
