@@ -273,15 +273,21 @@ function createSettingsForm(token: string | null): HTMLDivElement {
   tgSaveBtn.textContent = 'Save Notifications';
 
   wrap.append(
-    statusLabel, statusInput,
-    headersLabel, headersInput,
-    bodyLabel, bodyInput,
+    statusLabel,
+    statusInput,
+    headersLabel,
+    headersInput,
+    bodyLabel,
+    bodyInput,
     saveBtn,
     divider,
     tgTitle,
-    tgTokenLabel, tgTokenInput,
-    tgChatLabel, tgChatInput,
-    tgProxyLabel, tgProxyInput,
+    tgTokenLabel,
+    tgTokenInput,
+    tgChatLabel,
+    tgChatInput,
+    tgProxyLabel,
+    tgProxyInput,
     tgSaveBtn,
   );
 

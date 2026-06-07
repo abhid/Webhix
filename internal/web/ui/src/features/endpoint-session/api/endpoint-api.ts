@@ -66,7 +66,8 @@ export interface Notification {
 export async function fetchNotification(token: string): Promise<Notification> {
   const response = await fetch(`/api/endpoints/${token}/notifications`);
   const json = (await response.json()) as ApiResponse<Notification>;
-  if (!json.success || !json.body) return { telegramBotToken: '', telegramChatId: '', proxyUrl: '' };
+  if (!json.success || !json.body)
+    return { telegramBotToken: '', telegramChatId: '', proxyUrl: '' };
   return json.body;
 }
 
