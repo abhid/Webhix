@@ -56,7 +56,9 @@ func do(ctx context.Context, method, url, authToken string, body any) error {
 	}
 
 	var ar struct {
-		Error *struct{ Message string `json:"message"` } `json:"error"`
+		Error *struct {
+			Message string `json:"message"`
+		} `json:"error"`
 	}
 	if json.NewDecoder(resp.Body).Decode(&ar) == nil && ar.Error != nil {
 		return errors.New(ar.Error.Message)
