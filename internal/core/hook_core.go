@@ -16,7 +16,8 @@ type HookRepository interface {
 	GetHookByToken(ctx context.Context, token string) (domain.Hook, error)
 	ListHooks(ctx context.Context) ([]domain.Hook, error)
 	CreateWebhookRequest(ctx context.Context, params domain.CreateWebhookRequestParams) (domain.WebhookRequest, error)
-	ListWebhookRequests(ctx context.Context, hookID int64) ([]domain.WebhookRequest, error)
+	ListWebhookRequests(ctx context.Context, hookID, limit, offset int64) ([]domain.WebhookRequest, error)
+	CountWebhookRequests(ctx context.Context, hookID int64) (int64, error)
 	GetHookResponse(ctx context.Context, hookID int64) (domain.HookResponse, error)
 	UpsertHookResponse(ctx context.Context, hookID int64, params domain.UpsertHookResponseParams) (domain.HookResponse, error)
 }
@@ -73,13 +74,30 @@ func (s *Hook) ReceiveWebhook(ctx context.Context, token string, params domain.C
 	return req, resp, nil
 }
 
-func (s *Hook) ListWebhookRequests(ctx context.Context, token string) ([]domain.WebhookRequest, error) {
+func (s *Hook) ListWebhookRequests(ctx context.Context, token string, page domain.Page) (domain.WebhookRequestPage, error) {
+	page = page.Normalize()
+
 	hook, err := s.repo.GetHookByToken(ctx, token)
 	if err != nil {
-		return nil, err
+		return domain.WebhookRequestPage{}, err
 	}
 
-	return s.repo.ListWebhookRequests(ctx, hook.ID)
+	total, err := s.repo.CountWebhookRequests(ctx, hook.ID)
+	if err != nil {
+		return domain.WebhookRequestPage{}, err
+	}
+
+	reqs, err := s.repo.ListWebhookRequests(ctx, hook.ID, page.Limit, page.Offset)
+	if err != nil {
+		return domain.WebhookRequestPage{}, err
+	}
+
+	return domain.WebhookRequestPage{
+		Requests: reqs,
+		Total:    total,
+		Limit:    page.Limit,
+		Offset:   page.Offset,
+	}, nil
 }
 
 func (s *Hook) GetHookResponse(ctx context.Context, token string) (domain.HookResponse, error) {

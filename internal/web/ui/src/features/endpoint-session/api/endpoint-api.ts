@@ -27,11 +27,27 @@ export async function createEndpoint(): Promise<string> {
   return json.body.token;
 }
 
-export async function fetchRequests(token: string): Promise<WebhookRequest[]> {
-  const response = await fetch(`/api/endpoints/${token}/requests`);
-  const json = (await response.json()) as ApiResponse<WebhookRequest[]>;
-  if (!json.success) return [];
-  return json.body || [];
+export interface PaginatedRequests {
+  items: WebhookRequest[];
+  total: number;
+  limit: number;
+  offset: number;
+}
+
+export async function fetchRequests(
+  token: string,
+  opts: { limit?: number; offset?: number } = {},
+): Promise<WebhookRequest[]> {
+  const params = new URLSearchParams();
+  if (opts.limit != null) params.set("limit", String(opts.limit));
+  if (opts.offset != null) params.set("offset", String(opts.offset));
+  const qs = params.toString();
+  const response = await fetch(`/api/endpoints/${token}/requests${qs ? `?${qs}` : ""}`);
+  const json = (await response.json()) as ApiResponse<PaginatedRequests | WebhookRequest[]>;
+  if (!json.success || !json.body) return [];
+  // New paginated shape: { items, total, limit, offset }. Fall back to array.
+  if (Array.isArray(json.body)) return json.body;
+  return json.body.items ?? [];
 }
 
 export interface HookResponse {

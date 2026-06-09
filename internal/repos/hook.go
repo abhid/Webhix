@@ -64,8 +64,12 @@ func (r *Hook) CreateWebhookRequest(ctx context.Context, params domain.CreateWeb
 	return toDomainWebhookRequest(req), nil
 }
 
-func (r *Hook) ListWebhookRequests(ctx context.Context, hookID int64) ([]domain.WebhookRequest, error) {
-	rows, err := r.q.ListWebhookRequestsByHookID(ctx, hookID)
+func (r *Hook) ListWebhookRequests(ctx context.Context, hookID, limit, offset int64) ([]domain.WebhookRequest, error) {
+	rows, err := r.q.ListWebhookRequestsByHookID(ctx, sqlc.ListWebhookRequestsByHookIDParams{
+		HookID: hookID,
+		Limit:  limit,
+		Offset: offset,
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -76,6 +80,10 @@ func (r *Hook) ListWebhookRequests(ctx context.Context, hookID int64) ([]domain.
 	}
 
 	return result, nil
+}
+
+func (r *Hook) CountWebhookRequests(ctx context.Context, hookID int64) (int64, error) {
+	return r.q.CountWebhookRequestsByHookID(ctx, hookID)
 }
 
 func (r *Hook) ListHooks(ctx context.Context) ([]domain.Hook, error) {

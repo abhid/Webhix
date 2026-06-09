@@ -8,6 +8,8 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"strconv"
+	"time"
 
 	"github.com/GaIsBAX/Webhix/internal/domain"
 )
@@ -18,7 +20,7 @@ type HookService interface {
 	ListHooks(ctx context.Context) ([]domain.Hook, error)
 	CreateHook(ctx context.Context, token string) (domain.Hook, error)
 	ReceiveWebhook(ctx context.Context, token string, params domain.CreateWebhookRequestParams) (domain.WebhookRequest, domain.HookResponse, error)
-	ListWebhookRequests(ctx context.Context, token string) ([]domain.WebhookRequest, error)
+	ListWebhookRequests(ctx context.Context, token string, page domain.Page) (domain.WebhookRequestPage, error)
 	GetHookResponse(ctx context.Context, token string) (domain.HookResponse, error)
 	SetHookResponse(ctx context.Context, token string, params domain.UpsertHookResponseParams) (domain.HookResponse, error)
 }
@@ -35,10 +37,15 @@ type HookOptions struct {
 	ReadOnly    bool
 }
 
+type HealthChecker interface {
+	PingContext(ctx context.Context) error
+}
+
 type HookDeps struct {
 	Mux     *http.ServeMux
 	Service HookService
 	Hub     EventBroker
+	Health  HealthChecker
 	Opts    HookOptions
 }
 
@@ -62,6 +69,7 @@ func (h *Hook) RegisterRoutes() {
 	h.deps.Mux.HandleFunc("GET /api/endpoints/{token}/response", h.GetResponse)
 	h.deps.Mux.HandleFunc("PUT /api/endpoints/{token}/response", h.SetResponse)
 	h.deps.Mux.HandleFunc("/r/{token}", h.ReceiveWebhook)
+	h.deps.Mux.HandleFunc("GET /healthz", h.Health)
 }
 
 func (h *Hook) ListEndpoints(w http.ResponseWriter, r *http.Request) {
@@ -208,7 +216,12 @@ func (h *Hook) ReceiveWebhook(w http.ResponseWriter, r *http.Request) {
 func (h *Hook) ListRequests(w http.ResponseWriter, r *http.Request) {
 	token := r.PathValue("token")
 
-	reqs, err := h.deps.Service.ListWebhookRequests(r.Context(), token)
+	page := domain.Page{
+		Limit:  parseInt64(r.URL.Query().Get("limit"), 0),
+		Offset: parseInt64(r.URL.Query().Get("offset"), 0),
+	}
+
+	result, err := h.deps.Service.ListWebhookRequests(r.Context(), token, page)
 	if err != nil {
 		if errors.Is(err, domain.ErrNotFound) {
 			SendError(w, http.StatusNotFound, ErrNotFound)
@@ -219,12 +232,17 @@ func (h *Hook) ListRequests(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	contracts := make([]WebhookRequestContract, len(reqs))
-	for i, req := range reqs {
-		contracts[i] = toWebhookRequestContract(req)
+	items := make([]WebhookRequestContract, len(result.Requests))
+	for i, req := range result.Requests {
+		items[i] = toWebhookRequestContract(req)
 	}
 
-	data, err := json.Marshal(contracts)
+	data, err := json.Marshal(PaginatedRequestsContract{
+		Items:  items,
+		Total:  result.Total,
+		Limit:  result.Limit,
+		Offset: result.Offset,
+	})
 	if err != nil {
 		slog.Error("marshal requests", "err", err)
 		SendError(w, http.StatusInternalServerError, ErrInternal)
@@ -232,6 +250,36 @@ func (h *Hook) ListRequests(w http.ResponseWriter, r *http.Request) {
 	}
 
 	SendSuccess(w, http.StatusOK, data)
+}
+
+// Health is a lightweight liveness/readiness probe. It verifies the database
+// connection is reachable. Returns 200 with {"status":"ok"} or 503.
+func (h *Hook) Health(w http.ResponseWriter, r *http.Request) {
+	if h.deps.Health != nil {
+		ctx, cancel := context.WithTimeout(r.Context(), 2*time.Second)
+		defer cancel()
+		if err := h.deps.Health.PingContext(ctx); err != nil {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusServiceUnavailable)
+			_, _ = w.Write([]byte(`{"status":"unavailable"}`))
+			return
+		}
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	_, _ = w.Write([]byte(`{"status":"ok"}`))
+}
+
+func parseInt64(s string, def int64) int64 {
+	if s == "" {
+		return def
+	}
+	v, err := strconv.ParseInt(s, 10, 64)
+	if err != nil {
+		return def
+	}
+	return v
 }
 
 func (h *Hook) StreamEvents(w http.ResponseWriter, r *http.Request) {

@@ -31,7 +31,13 @@ RETURNING id, hook_id, method, path, query, headers, body, remote_addr, content_
 SELECT id, hook_id, method, path, query, headers, body, remote_addr, content_type, body_size, received_at
 FROM webhook_requests
 WHERE hook_id = ?
-ORDER BY received_at DESC, id DESC;
+ORDER BY received_at DESC, id DESC
+LIMIT ? OFFSET ?;
+
+-- name: CountWebhookRequestsByHookID :one
+SELECT COUNT(*)
+FROM webhook_requests
+WHERE hook_id = ?;
 
 -- name: ListWebhookRequestsByTime :many
 SELECT

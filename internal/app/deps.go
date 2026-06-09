@@ -135,6 +135,7 @@ func newHandlers(deps *dependencies) *handlers {
 			Mux:     deps.mux,
 			Service: deps.services.hook,
 			Hub:     deps.infra.hub,
+			Health:  deps.infra.db.DB,
 			Opts: server.HookOptions{
 				BaseURL:     deps.cfg.BaseURL,
 				MaxBodySize: deps.cfg.MaxBodySize,
