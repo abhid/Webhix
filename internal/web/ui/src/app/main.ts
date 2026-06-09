@@ -10,6 +10,7 @@ import type { Endpoint } from '../features/endpoint-session/api/endpoint-api';
 import { getElements } from './dom';
 import { renderRequestList, refreshRelativeTimes } from '../widgets/request-list/request-list';
 import { renderSelectedDetail, showPlaceholder } from '../widgets/request-detail/request-detail';
+import { renderWebhookSettings } from '../widgets/webhook-settings/webhook-settings';
 import {
   addRequests,
   createInitialState,
@@ -70,7 +71,21 @@ function init(): void {
     });
   }
 
+  for (const button of elements.sectionTabs) {
+    button.addEventListener('click', () => switchSection(button.dataset.section));
+  }
+
   setInterval(() => refreshRelativeTimes(elements.requestList), 15000);
+}
+
+function switchSection(section: string | undefined): void {
+  const isSettings = section === 'settings';
+  for (const button of elements.sectionTabs) {
+    button.classList.toggle('active', button.dataset.section === section);
+  }
+  elements.requestsSection.classList.toggle('hidden', isSettings);
+  elements.settingsSection.classList.toggle('hidden', !isSettings);
+  if (isSettings) renderWebhookSettings(elements.webhookSettings, currentToken);
 }
 
 function showOverlay(): void {
@@ -97,6 +112,7 @@ function activateToken(token: string): void {
   elements.pillArea.classList.remove('hidden');
   elements.overlay.classList.add('hidden');
   elements.mainArea.classList.remove('hidden');
+  switchSection('requests');
 
   renderRequestList(elements, state);
   showPlaceholder(elements);
@@ -121,7 +137,11 @@ function renderEndpointsList(endpoints: Endpoint[]): void {
 
   if (countBadge) countBadge.textContent = String(endpoints.length);
 
-  list.innerHTML = '';
+  elements.overviewEndpoints.textContent = String(endpoints.length);
+  const totalRequests = endpoints.reduce((sum, ep) => sum + (ep.requestCount ?? 0), 0);
+  elements.overviewRequests.textContent = totalRequests.toLocaleString();
+
+  list.replaceChildren();
   for (const ep of endpoints) {
     const btn = document.createElement('button');
     btn.className = 'endpoint-card' + (ep.token === currentToken ? ' active' : '');
@@ -130,10 +150,15 @@ function renderEndpointsList(endpoints: Endpoint[]): void {
     const label = document.createElement('strong');
     label.textContent = ep.name || ep.token;
 
+    const count = document.createElement('span');
+    count.className = 'endpoint-count';
+    const received = ep.requestCount ?? 0;
+    count.textContent = `${received} ${received === 1 ? 'event' : 'events'}`;
+
     const path = document.createElement('small');
     path.textContent = `/r/${ep.token}`;
 
-    btn.append(label, path);
+    btn.append(label, count, path);
     btn.addEventListener('click', () => activateToken(ep.token));
     list.appendChild(btn);
   }
@@ -248,11 +273,5 @@ function toast(message: string): void {
 }
 
 function isRequestTab(value: string | undefined): value is RequestTab {
-  return (
-    value === 'headers' ||
-    value === 'body' ||
-    value === 'query' ||
-    value === 'info' ||
-    value === 'settings'
-  );
+  return value === 'body' || value === 'headers' || value === 'details';
 }

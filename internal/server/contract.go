@@ -20,11 +20,12 @@ type CreateEndpointResponseContract struct {
 }
 
 type EndpointListItemContract struct {
-	ID        int64     `json:"id"`
-	Token     string    `json:"token"`
-	Name      string    `json:"name,omitempty"`
-	URL       string    `json:"url"`
-	CreatedAt time.Time `json:"createdAt"`
+	ID           int64     `json:"id"`
+	Token        string    `json:"token"`
+	Name         string    `json:"name,omitempty"`
+	URL          string    `json:"url"`
+	CreatedAt    time.Time `json:"createdAt"`
+	RequestCount int64     `json:"requestCount"`
 }
 
 type WebhookRequestContract struct {

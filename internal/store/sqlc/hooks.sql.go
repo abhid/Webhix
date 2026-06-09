@@ -187,6 +187,59 @@ func (q *Queries) ListHooks(ctx context.Context) ([]Hook, error) {
 	return items, nil
 }
 
+const listHooksWithRequestCounts = `-- name: ListHooksWithRequestCounts :many
+SELECT
+    h.id,
+    h.token,
+    h.name,
+    h.created_at,
+    h.updated_at,
+    COUNT(wr.id) AS request_count
+FROM hooks h
+LEFT JOIN webhook_requests wr ON wr.hook_id = h.id
+GROUP BY h.id
+ORDER BY h.created_at DESC
+`
+
+type ListHooksWithRequestCountsRow struct {
+	ID           int64          `json:"id"`
+	Token        string         `json:"token"`
+	Name         sql.NullString `json:"name"`
+	CreatedAt    time.Time      `json:"created_at"`
+	UpdatedAt    time.Time      `json:"updated_at"`
+	RequestCount int64          `json:"request_count"`
+}
+
+func (q *Queries) ListHooksWithRequestCounts(ctx context.Context) ([]ListHooksWithRequestCountsRow, error) {
+	rows, err := q.db.QueryContext(ctx, listHooksWithRequestCounts)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListHooksWithRequestCountsRow
+	for rows.Next() {
+		var i ListHooksWithRequestCountsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Token,
+			&i.Name,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.RequestCount,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listWebhookRequestsByHookID = `-- name: ListWebhookRequestsByHookID :many
 SELECT id, hook_id, method, path, query, headers, body, remote_addr, content_type, body_size, received_at
 FROM webhook_requests

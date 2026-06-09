@@ -75,11 +75,12 @@ func (h *Hook) ListEndpoints(w http.ResponseWriter, r *http.Request) {
 	contracts := make([]EndpointListItemContract, len(hooks))
 	for i, hook := range hooks {
 		contracts[i] = EndpointListItemContract{
-			ID:        hook.ID,
-			Token:     hook.Token,
-			Name:      hook.Name,
-			URL:       h.deps.Opts.BaseURL + "/r/" + hook.Token,
-			CreatedAt: hook.CreatedAt,
+			ID:           hook.ID,
+			Token:        hook.Token,
+			Name:         hook.Name,
+			URL:          h.deps.Opts.BaseURL + "/r/" + hook.Token,
+			CreatedAt:    hook.CreatedAt,
+			RequestCount: hook.RequestCount,
 		}
 	}
 

@@ -15,7 +15,7 @@ export function createInitialState(): AppState {
     token: null,
     requests: [],
     selectedRequestId: null,
-    activeTab: 'headers',
+    activeTab: 'body',
     seenIds: new Set<number>(),
     searchQuery: '',
     methodFilter: null,
