@@ -10,22 +10,22 @@
 
 ## Types
 
-| Type       | When to use                                      |
-|------------|--------------------------------------------------|
-| `feat`     | New feature                                      |
-| `fix`      | Bug fix                                          |
-| `refactor` | Code change with no behavior change              |
-| `perf`     | Performance improvement                          |
-| `style`    | Formatting, whitespace (no logic change)         |
-| `docs`     | Documentation only                               |
-| `test`     | Adding or fixing tests                           |
-| `chore`    | Dependencies, configs, tooling                   |
-| `ci`       | CI/CD pipeline changes                           |
-| `build`    | Build system changes                             |
-| `db`       | Migrations, schema changes                       |
-| `revert`   | Revert a previous commit                         |
-| `init`     | Initial project scaffold                         |
-| `wip`      | Work in progress — avoid merging into main       |
+| Type       | When to use                                |
+| ---------- | ------------------------------------------ |
+| `feat`     | New feature                                |
+| `fix`      | Bug fix                                    |
+| `refactor` | Code change with no behavior change        |
+| `perf`     | Performance improvement                    |
+| `style`    | Formatting, whitespace (no logic change)   |
+| `docs`     | Documentation only                         |
+| `test`     | Adding or fixing tests                     |
+| `chore`    | Dependencies, configs, tooling             |
+| `ci`       | CI/CD pipeline changes                     |
+| `build`    | Build system changes                       |
+| `db`       | Migrations, schema changes                 |
+| `revert`   | Revert a previous commit                   |
+| `init`     | Initial project scaffold                   |
+| `wip`      | Work in progress — avoid merging into main |
 
 ## Scope (optional)
 
@@ -62,10 +62,10 @@ test(auth): add unit tests for jwt token creation
 
 ## Anti-patterns
 
-| Bad                    | Why                          |
-|------------------------|------------------------------|
-| `fix: bug`             | Not descriptive              |
-| `update` / `commit`    | Meaningless                  |
-| `add new file`         | Which file? Why?             |
-| `wip: test`            | Do not merge WIP into main   |
-| `debug`                | Remove before merging        |
+| Bad                 | Why                        |
+| ------------------- | -------------------------- |
+| `fix: bug`          | Not descriptive            |
+| `update` / `commit` | Meaningless                |
+| `add new file`      | Which file? Why?           |
+| `wip: test`         | Do not merge WIP into main |
+| `debug`             | Remove before merging      |

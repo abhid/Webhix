@@ -49,46 +49,46 @@ Sent immediately after WebSocket connection is established.
 
 ```json
 {
-  "type":       "register",
-  "version":    "1",
+  "type": "register",
+  "version": "1",
   "auth_token": "tok_xxxx",
-  "subdomain":  "myapp"
+  "subdomain": "myapp"
 }
 ```
 
-| Field | Required | Description |
-| --- | --- | --- |
-| `version` | yes | Protocol version, must be `"1"` |
-| `auth_token` | no | Pro auth token from webhix.online dashboard |
-| `subdomain` | no | Requested reserved subdomain (Pro only) |
+| Field        | Required | Description                                 |
+| ------------ | -------- | ------------------------------------------- |
+| `version`    | yes      | Protocol version, must be `"1"`             |
+| `auth_token` | no       | Pro auth token from webhix.online dashboard |
+| `subdomain`  | no       | Requested reserved subdomain (Pro only)     |
 
 ### Step 2a — Relay → Client: `registered` (success)
 
 ```json
 {
-  "type":               "registered",
-  "subdomain":          "abc123",
-  "url":                "https://abc123.webhix.online",
-  "tier":               "free",
-  "expires_at":         "2024-01-01T20:00:00Z",
+  "type": "registered",
+  "subdomain": "abc123",
+  "url": "https://abc123.webhix.online",
+  "tier": "free",
+  "expires_at": "2024-01-01T20:00:00Z",
   "expires_in_seconds": 7200
 }
 ```
 
-| Field | Description |
-| --- | --- |
-| `subdomain` | Assigned subdomain (may differ from requested) |
-| `url` | Full public URL to share |
-| `tier` | `"free"` or `"pro"` |
-| `expires_at` | ISO 8601 UTC, free tier session expiry; `null` for Pro |
+| Field                | Description                                                 |
+| -------------------- | ----------------------------------------------------------- |
+| `subdomain`          | Assigned subdomain (may differ from requested)              |
+| `url`                | Full public URL to share                                    |
+| `tier`               | `"free"` or `"pro"`                                         |
+| `expires_at`         | ISO 8601 UTC, free tier session expiry; `null` for Pro      |
 | `expires_in_seconds` | Seconds until expiry, for countdown display; `null` for Pro |
 
 ### Step 2b — Relay → Client: `error` (failure)
 
 ```json
 {
-  "type":    "error",
-  "code":    "AUTH_FAILED",
+  "type": "error",
+  "code": "AUTH_FAILED",
   "message": "Invalid or expired auth token"
 }
 ```
@@ -105,27 +105,27 @@ Sent when an HTTP request arrives at `<subdomain>.webhix.online`.
 
 ```json
 {
-  "type":    "request",
-  "id":      "01HV2K9XMABCDEF123456789",
-  "method":  "POST",
-  "path":    "/webhook/stripe",
-  "query":   "sig=abc123",
+  "type": "request",
+  "id": "01HV2K9XMABCDEF123456789",
+  "method": "POST",
+  "path": "/webhook/stripe",
+  "query": "sig=abc123",
   "headers": {
-    "Content-Type":       ["application/json"],
-    "Stripe-Signature":   ["t=1700000000,v1=abc..."]
+    "Content-Type": ["application/json"],
+    "Stripe-Signature": ["t=1700000000,v1=abc..."]
   },
-  "body":    "eyJldmVudCI6InBheW1lbnQuc3VjY2VlZGVkIn0="
+  "body": "eyJldmVudCI6InBheW1lbnQuc3VjY2VlZGVkIn0="
 }
 ```
 
-| Field | Description |
-| --- | --- |
-| `id` | ULID or UUID v4, unique per request. Used to match responses |
-| `method` | HTTP method |
-| `path` | Request path, always starts with `/` |
-| `query` | Raw query string without `?`, may be empty string |
-| `headers` | Map of header name → array of values |
-| `body` | Base64-encoded request body, may be empty string |
+| Field     | Description                                                  |
+| --------- | ------------------------------------------------------------ |
+| `id`      | ULID or UUID v4, unique per request. Used to match responses |
+| `method`  | HTTP method                                                  |
+| `path`    | Request path, always starts with `/`                         |
+| `query`   | Raw query string without `?`, may be empty string            |
+| `headers` | Map of header name → array of values                         |
+| `body`    | Base64-encoded request body, may be empty string             |
 
 ### Client → Relay: `response`
 
@@ -133,33 +133,33 @@ Sent after the client proxies the request to the local port and receives a respo
 
 ```json
 {
-  "type":    "response",
-  "id":      "01HV2K9XMABCDEF123456789",
-  "status":  200,
+  "type": "response",
+  "id": "01HV2K9XMABCDEF123456789",
+  "status": 200,
   "headers": {
     "Content-Type": ["application/json"]
   },
-  "body":    "eyJvayI6dHJ1ZX0="
+  "body": "eyJvayI6dHJ1ZX0="
 }
 ```
 
-| Field | Description |
-| --- | --- |
-| `id` | Same ID as the corresponding `request` message |
-| `status` | HTTP status code |
-| `headers` | Map of header name → array of values |
-| `body` | Base64-encoded response body, may be empty string |
+| Field     | Description                                       |
+| --------- | ------------------------------------------------- |
+| `id`      | Same ID as the corresponding `request` message    |
+| `status`  | HTTP status code                                  |
+| `headers` | Map of header name → array of values              |
+| `body`    | Base64-encoded response body, may be empty string |
 
 **If the local port is unreachable** (connection refused, timeout), the client MUST
 send a 502 response rather than dropping the message:
 
 ```json
 {
-  "type":    "response",
-  "id":      "01HV2K9XMABCDEF123456789",
-  "status":  502,
+  "type": "response",
+  "id": "01HV2K9XMABCDEF123456789",
+  "status": 502,
   "headers": {},
-  "body":    ""
+  "body": ""
 }
 ```
 
@@ -205,14 +205,14 @@ process each request in its own goroutine.
 
 These limits apply at the relay level regardless of tier.
 
-| Limit | Value |
-| --- | --- |
-| Max request body | 10 MB |
-| Max response body | 10 MB |
-| Max headers size | 64 KB |
-| Max WebSocket frame | 16 MB |
-| Idle timeout (no traffic) | 5 minutes |
-| Max concurrent in-flight requests per tunnel | 100 |
+| Limit                                        | Value     |
+| -------------------------------------------- | --------- |
+| Max request body                             | 10 MB     |
+| Max response body                            | 10 MB     |
+| Max headers size                             | 64 KB     |
+| Max WebSocket frame                          | 16 MB     |
+| Idle timeout (no traffic)                    | 5 minutes |
+| Max concurrent in-flight requests per tunnel | 100       |
 
 Requests exceeding body or headers limits receive a `413 Request Entity Too Large`
 response from the relay without being forwarded to the client.
@@ -221,15 +221,15 @@ response from the relay without being forwarded to the client.
 
 ## Error Codes
 
-| Code | Description |
-| --- | --- |
-| `AUTH_FAILED` | Invalid or expired auth token |
-| `SUBDOMAIN_TAKEN` | Requested subdomain is currently in use |
-| `SUBDOMAIN_RESERVED` | Requested subdomain requires Pro tier |
-| `TUNNEL_LIMIT` | Maximum concurrent tunnels reached for this account |
-| `RATE_LIMITED` | Rate limit exceeded (free tier) |
-| `RELAY_ERROR` | Internal relay server error |
-| `UNSUPPORTED_VERSION` | Protocol version not supported by this relay |
+| Code                  | Description                                         |
+| --------------------- | --------------------------------------------------- |
+| `AUTH_FAILED`         | Invalid or expired auth token                       |
+| `SUBDOMAIN_TAKEN`     | Requested subdomain is currently in use             |
+| `SUBDOMAIN_RESERVED`  | Requested subdomain requires Pro tier               |
+| `TUNNEL_LIMIT`        | Maximum concurrent tunnels reached for this account |
+| `RATE_LIMITED`        | Rate limit exceeded (free tier)                     |
+| `RELAY_ERROR`         | Internal relay server error                         |
+| `UNSUPPORTED_VERSION` | Protocol version not supported by this relay        |
 
 ---
 
@@ -238,6 +238,7 @@ response from the relay without being forwarded to the client.
 The protocol version is declared in the `register` message (`"version": "1"`).
 
 The relay MUST:
+
 - Accept `"1"` (this document)
 - Reject unknown versions with `{"type": "error", "code": "UNSUPPORTED_VERSION"}`
 

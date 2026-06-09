@@ -26,11 +26,11 @@ The project currently targets:
 
 The README currently documents these configuration values:
 
-| Environment variable | Default | Description |
-| --- | --- | --- |
-| `WEBHIX_BASE_URL` | `http://localhost:8080` | Public base URL used for generated endpoint links. |
-| `WEBHIX_ADDR` | `:8080` | Address the HTTP server listens on. |
-| `WEBHIX_DB_PATH` | `./data` | Path to the SQLite database directory. |
+| Environment variable | Default                 | Description                                        |
+| -------------------- | ----------------------- | -------------------------------------------------- |
+| `WEBHIX_BASE_URL`    | `http://localhost:8080` | Public base URL used for generated endpoint links. |
+| `WEBHIX_ADDR`        | `:8080`                 | Address the HTTP server listens on.                |
+| `WEBHIX_DB_PATH`     | `./data`                | Path to the SQLite database directory.             |
 
 The CLI should map these environment variables to clear flags and should allow configuration through the following priority order:
 
