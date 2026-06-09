@@ -727,6 +727,10 @@ button {
   text-align: center;
   padding: 24px;
 }
+.detail-placeholder > div:last-child {
+  font-weight: 500;
+  color: var(--text-2);
+}
 .empty-icon,
 .big-icon {
   display: grid;
@@ -744,9 +748,10 @@ button {
   font-size: 11px;
 }
 .big-icon {
-  width: 52px;
-  height: 52px;
-  font-size: 20px;
+  width: 56px;
+  height: 56px;
+  font-size: 22px;
+  box-shadow: var(--shadow-sm);
 }
 .empty-title {
   font-weight: 600;
