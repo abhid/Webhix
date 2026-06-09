@@ -14,33 +14,6 @@
           <div class="logo">webhix</div>
         </div>
         <button class="new-btn" id="newEndpointButton">+ New Endpoint</button>
-        <nav class="nav">
-          <a class="nav-item active" href="#">Dashboard</a>
-          <a class="nav-item" href="#">Endpoints</a>
-          <a class="nav-item" href="#">Requests</a>
-          <a class="nav-item" href="#">Settings</a>
-        </nav>
-        <div class="overview-card">
-          <h3>Overview</h3>
-          <dl>
-            <div>
-              <dt>Total Requests</dt>
-              <dd>3,247</dd>
-            </div>
-            <div>
-              <dt>Today</dt>
-              <dd>42</dd>
-            </div>
-            <div>
-              <dt>Storage</dt>
-              <dd>12.4 MB</dd>
-            </div>
-            <div>
-              <dt>Uptime</dt>
-              <dd>7d 14h</dd>
-            </div>
-          </dl>
-        </div>
         <div class="sidebar-footer">
           <strong>webhix</strong>
           <span>Self-hosted · Open source</span>
@@ -49,12 +22,9 @@
 
       <div class="workspace">
         <header>
-          <div class="search-box">Search endpoints...</div>
           <div class="server-pill">
             <span class="status-dot" id="statusDot" title="SSE connection"></span> Server v0.1.0
           </div>
-          <button class="icon-btn" title="Docs">Docs</button>
-          <button class="avatar-btn" title="Account">AD</button>
         </header>
 
         <div id="overlay">
@@ -109,15 +79,7 @@
               </div>
               <div class="stats">
                 <div><span>Total Requests</span><strong id="countBadge">0</strong></div>
-                <div><span>Today</span><strong>0</strong></div>
-                <div><span>Last Request</span><strong>Waiting</strong></div>
               </div>
-            </div>
-
-            <div class="section-tabs">
-              <button class="section-tab active">Requests</button>
-              <button class="section-tab">Statistics</button>
-              <button class="section-tab">Settings</button>
             </div>
 
             <div class="request-toolbar">
