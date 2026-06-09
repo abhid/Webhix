@@ -20,7 +20,7 @@ func NewAuth(password, secretKey string) *Auth {
 
 func (a *Auth) Protect(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if strings.HasPrefix(r.URL.Path, "/r/") {
+		if strings.HasPrefix(r.URL.Path, "/r/") || r.URL.Path == "/healthz" {
 			next.ServeHTTP(w, r)
 			return
 		}
