@@ -71,6 +71,8 @@ function init(): void {
   }
 
   setInterval(() => refreshRelativeTimes(elements.requestList), 15000);
+
+  void loadEndpoints();
 }
 
 function showOverlay(): void {
