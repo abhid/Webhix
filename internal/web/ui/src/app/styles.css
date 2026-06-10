@@ -333,13 +333,20 @@ header {
   font-size: 12px;
 }
 
+#endpointsList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+
 .endpoint-card {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  gap: 9px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
   width: 100%;
-  margin-top: 8px;
-  padding: 18px;
+  max-width: 100%;
+  padding: 14px 16px;
   border: 1px solid var(--border-strong);
   border-radius: 8px;
   background: linear-gradient(135deg, rgba(124, 106, 247, 0.14), rgba(7, 16, 24, 0.72));
@@ -347,17 +354,27 @@ header {
   text-align: left;
 }
 
+.endpoint-card:hover {
+  border-color: var(--purple);
+}
+
 .endpoint-card strong,
 .endpoint-card small {
-  min-width: 0;
+  display: block;
+  max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .endpoint-count {
-  grid-column: 2;
+  align-self: flex-start;
+  border-radius: 999px;
+  padding: 2px 9px;
+  background: rgba(148, 163, 184, 0.12);
   color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
 }
 
 .detail-panel {
@@ -365,6 +382,35 @@ header {
   min-width: 0;
   flex-direction: column;
   background: rgba(2, 7, 11, 0.34);
+}
+
+.requests-section {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  flex-direction: column;
+}
+
+.settings-section {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 24px 28px;
+}
+
+.settings-panel {
+  width: min(640px, 100%);
+}
+
+.settings-title {
+  margin-bottom: 6px;
+  font-size: 18px;
+}
+
+.settings-intro {
+  margin-bottom: 18px;
+  color: var(--muted);
+  line-height: 1.55;
 }
 
 .endpoint-top {
@@ -792,6 +838,19 @@ header {
 .body-empty,
 .empty-table-message {
   color: var(--muted);
+}
+
+.details-heading {
+  margin-bottom: 12px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.details-tab .details-heading:not(:first-child) {
+  margin-top: 24px;
 }
 
 .info-grid {

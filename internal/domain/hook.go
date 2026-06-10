@@ -6,11 +6,12 @@ import (
 )
 
 type Hook struct {
-	ID        int64
-	Token     string
-	Name      string
-	CreatedAt time.Time
-	UpdatedAt time.Time
+	ID           int64
+	Token        string
+	Name         string
+	CreatedAt    time.Time
+	UpdatedAt    time.Time
+	RequestCount int64
 }
 
 type WebhookRequest struct {

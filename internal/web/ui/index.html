@@ -24,20 +24,12 @@
           <h3>Overview</h3>
           <dl>
             <div>
+              <dt>Endpoints</dt>
+              <dd id="overviewEndpoints">0</dd>
+            </div>
+            <div>
               <dt>Total Requests</dt>
-              <dd>3,247</dd>
-            </div>
-            <div>
-              <dt>Today</dt>
-              <dd>42</dd>
-            </div>
-            <div>
-              <dt>Storage</dt>
-              <dd>12.4 MB</dd>
-            </div>
-            <div>
-              <dt>Uptime</dt>
-              <dd>7d 14h</dd>
+              <dd id="overviewRequests">0</dd>
             </div>
           </dl>
         </div>
@@ -91,7 +83,6 @@
             <div class="endpoint-top">
               <div>
                 <div class="endpoint-title">
-                  <span class="method-badge method-POST">POST</span>
                   <h1 id="endpointTitle">Endpoint</h1>
                   <span class="active-chip">Active</span>
                 </div>
@@ -109,67 +100,73 @@
               </div>
               <div class="stats">
                 <div><span>Total Requests</span><strong id="countBadge">0</strong></div>
-                <div><span>Today</span><strong>0</strong></div>
-                <div><span>Last Request</span><strong>Waiting</strong></div>
+                <div><span>Today</span><strong id="statToday">0</strong></div>
+                <div><span>Last Request</span><strong id="statLast">Waiting</strong></div>
               </div>
             </div>
 
             <div class="section-tabs">
-              <button class="section-tab active">Requests</button>
-              <button class="section-tab">Statistics</button>
-              <button class="section-tab">Settings</button>
+              <button class="section-tab active" data-section="requests">Requests</button>
+              <button class="section-tab" data-section="settings">Settings</button>
             </div>
 
-            <div class="request-toolbar">
-              <input
-                type="text"
-                class="toolbar-search"
-                id="searchInput"
-                placeholder="Search requests..."
-              />
-              <button class="toolbar-btn" id="methodFilter">All Methods</button>
-              <button class="toolbar-btn live">Live</button>
-            </div>
+            <div id="requestsSection" class="requests-section">
+              <div class="request-toolbar">
+                <input
+                  type="text"
+                  class="toolbar-search"
+                  id="searchInput"
+                  placeholder="Search requests..."
+                />
+                <button class="toolbar-btn" id="methodFilter">All Methods</button>
+                <button class="toolbar-btn live">Live</button>
+              </div>
 
-            <div class="inspector-grid">
-              <div class="list-panel">
-                <div class="request-list" id="requestList">
-                  <div class="empty-state" id="emptyState">
-                    <div class="empty-icon" aria-hidden="true">HTTP</div>
-                    <div>Waiting for requests&hellip;</div>
-                    <div class="empty-hint">Send a webhook to your endpoint URL</div>
+              <div class="inspector-grid">
+                <div class="list-panel">
+                  <div class="request-list" id="requestList">
+                    <div class="empty-state" id="emptyState">
+                      <div class="empty-icon" aria-hidden="true">HTTP</div>
+                      <div>Waiting for requests&hellip;</div>
+                      <div class="empty-hint">Send a webhook to your endpoint URL</div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="inspector-panel">
+                  <div class="detail-placeholder" id="detailPlaceholder">
+                    <div class="big-icon" aria-hidden="true">Inspect</div>
+                    <div>Select a request to inspect it</div>
+                  </div>
+                  <div id="detailContent" class="detail-content hidden">
+                    <div class="detail-top">
+                      <div class="detail-title">
+                        <span class="method-badge" id="dtMethod"></span>
+                        <span class="detail-path" id="dtPath"></span>
+                        <button class="curl-btn" id="curlButton" title="Copy as curl command">
+                          Copy as curl
+                        </button>
+                        <button class="curl-btn" id="replayButton" title="Replay this request">
+                          Replay
+                        </button>
+                      </div>
+                      <div class="detail-ts" id="dtTs"></div>
+                      <div class="tabs">
+                        <button class="tab active" data-tab="body">Body</button>
+                        <button class="tab" data-tab="headers">Headers</button>
+                        <button class="tab" data-tab="details">Details</button>
+                      </div>
+                    </div>
+                    <div class="tab-content" id="tabContent"></div>
                   </div>
                 </div>
               </div>
+            </div>
 
-              <div class="inspector-panel">
-                <div class="detail-placeholder" id="detailPlaceholder">
-                  <div class="big-icon" aria-hidden="true">Inspect</div>
-                  <div>Select a request to inspect it</div>
-                </div>
-                <div id="detailContent" class="detail-content hidden">
-                  <div class="detail-top">
-                    <div class="detail-title">
-                      <span class="method-badge" id="dtMethod"></span>
-                      <span class="detail-path" id="dtPath"></span>
-                      <button class="curl-btn" id="curlButton" title="Copy as curl command">
-                        Copy as curl
-                      </button>
-                      <button class="curl-btn" id="replayButton" title="Replay this request">
-                        Replay
-                      </button>
-                    </div>
-                    <div class="detail-ts" id="dtTs"></div>
-                    <div class="tabs">
-                      <button class="tab active" data-tab="headers">Headers</button>
-                      <button class="tab" data-tab="body">Body</button>
-                      <button class="tab" data-tab="query">Query</button>
-                      <button class="tab" data-tab="info">Info</button>
-                      <button class="tab" data-tab="settings">Settings</button>
-                    </div>
-                  </div>
-                  <div class="tab-content" id="tabContent"></div>
-                </div>
+            <div id="settingsSection" class="settings-section hidden">
+              <div class="settings-panel">
+                <h3 class="settings-title">Endpoint Settings</h3>
+                <div id="webhookSettings"></div>
               </div>
             </div>
           </div>

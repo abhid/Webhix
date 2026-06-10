@@ -137,10 +137,10 @@ make web-check  # lint + type check + prettier
 
 ## Environment
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `WEBHIX_BASE_URL` | `http://localhost:8080` | Public base URL for generated endpoint links |
-| `WEBHIX_ADDR` | `:8080` | Listen address |
-| `WEBHIX_DB_PATH` | `./data` | SQLite database directory |
-| `WEBHIX_PASSWORD` | — | Basic auth password |
-| `WEBHIX_SECRET_KEY` | — | API secret key (Bearer / X-Webhix-Key) |
+| Variable            | Default                 | Description                                  |
+| ------------------- | ----------------------- | -------------------------------------------- |
+| `WEBHIX_BASE_URL`   | `http://localhost:8080` | Public base URL for generated endpoint links |
+| `WEBHIX_ADDR`       | `:8080`                 | Listen address                               |
+| `WEBHIX_DB_PATH`    | `./data`                | SQLite database directory                    |
+| `WEBHIX_PASSWORD`   | —                       | Basic auth password                          |
+| `WEBHIX_SECRET_KEY` | —                       | API secret key (Bearer / X-Webhix-Key)       |

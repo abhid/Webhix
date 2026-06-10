@@ -71,6 +71,19 @@ SELECT id, token, name, created_at, updated_at
 FROM hooks
 ORDER BY created_at DESC;
 
+-- name: ListHooksWithRequestCounts :many
+SELECT
+    h.id,
+    h.token,
+    h.name,
+    h.created_at,
+    h.updated_at,
+    COUNT(wr.id) AS request_count
+FROM hooks h
+LEFT JOIN webhook_requests wr ON wr.hook_id = h.id
+GROUP BY h.id
+ORDER BY h.created_at DESC;
+
 -- name: GetHookResponseByHookID :one
 SELECT id, hook_id, status_code, headers, body, created_at, updated_at
 FROM hook_responses

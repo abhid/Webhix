@@ -2,7 +2,7 @@ services:
   webhix:
     image: ghcr.io/gaisbax/webhix:latest
     ports:
-      - "8080:8080"
+      - '8080:8080'
     volumes:
       - ./data:/data
     environment:

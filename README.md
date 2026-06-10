@@ -28,15 +28,15 @@ webhook.site is the go-to tool for debugging webhooks, but it sends your data to
 
 ## Why not webhook.site / smee.io / webhook-tester?
 
-|                 | Webhix        | webhook.site (self-hosted)    | smee.io        | tarampampam/webhook-tester |
-| --------------- | ------------- | ----------------------------- | -------------- | -------------------------- |
-| Self-hosted     | ✅            | ✅                            | ❌             | ✅                         |
-| Single binary   | ✅            | ❌ PHP + Composer + MySQL     | ❌             | ❌ Redis or fs driver      |
-| Request history | ✅            | ✅                            | ❌             | ✅                         |
-| Live UI         | ✅            | ✅                            | ❌             | ✅                         |
-| Replay          | ✅            | ❌                            | ❌             | ❌                         |
-| CLI forwarding  | ✅ built-in   | ❌                            | ✅ only this   | ❌ needs ngrok             |
-| Custom responses| ✅            | ❌                            | ❌             | ❌                         |
+|                  | Webhix      | webhook.site (self-hosted) | smee.io      | tarampampam/webhook-tester |
+| ---------------- | ----------- | -------------------------- | ------------ | -------------------------- |
+| Self-hosted      | ✅          | ✅                         | ❌           | ✅                         |
+| Single binary    | ✅          | ❌ PHP + Composer + MySQL  | ❌           | ❌ Redis or fs driver      |
+| Request history  | ✅          | ✅                         | ❌           | ✅                         |
+| Live UI          | ✅          | ✅                         | ❌           | ✅                         |
+| Replay           | ✅          | ❌                         | ❌           | ❌                         |
+| CLI forwarding   | ✅ built-in | ❌                         | ✅ only this | ❌ needs ngrok             |
+| Custom responses | ✅          | ❌                         | ❌           | ❌                         |
 
 Webhix is the only tool combining single-binary deployment, request replay, and custom responses — no Redis, no PHP, no external tunnel services.
 
@@ -65,8 +65,8 @@ docker run -p 8080:8080 -v webhix-data:/data \
 services:
   webhix:
     image: ghcr.io/gaisbax/webhix
-    ports: ["8080:8080"]
-    volumes: ["./data:/data"]
+    ports: ['8080:8080']
+    volumes: ['./data:/data']
     environment:
       WEBHIX_BASE_URL: https://hooks.yourdomain.com
 ```
@@ -103,11 +103,11 @@ Works behind Caddy, Nginx, Traefik. Reads `X-Forwarded-*` headers automatically.
 
 ## Configuration
 
-| Env var | Default | Description |
-| ------- | ------- | ----------- |
+| Env var           | Default                 | Description                                  |
+| ----------------- | ----------------------- | -------------------------------------------- |
 | `WEBHIX_BASE_URL` | `http://localhost:8080` | Public base URL for generated endpoint links |
-| `WEBHIX_ADDR` | `:8080` | Address to listen on (e.g. `0.0.0.0:9000`) |
-| `WEBHIX_DB_PATH` | `./data` | Path to SQLite database directory |
+| `WEBHIX_ADDR`     | `:8080`                 | Address to listen on (e.g. `0.0.0.0:9000`)   |
+| `WEBHIX_DB_PATH`  | `./data`                | Path to SQLite database directory            |
 
 ## Technical notes
 

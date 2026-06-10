@@ -30,6 +30,15 @@ export function formatBytes(bytes: number): string {
   return `${(bytes / 1024 / 1024).toFixed(2)} MB`;
 }
 
+export function relativeWebhookPath(path: string, token: string | null): string {
+  if (!token) return path;
+  const base = `/r/${token}`;
+  if (path === base) return '/';
+  if (path.startsWith(`${base}/`)) return path.slice(base.length);
+  if (path.startsWith(`${base}?`)) return path.slice(base.length);
+  return path;
+}
+
 export function methodClass(method: string | undefined): string {
   const classes: Record<string, string> = {
     GET: 'method-GET',
