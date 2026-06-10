@@ -20,4 +20,6 @@ WORKDIR /app
 COPY --from=builder /webhix /usr/local/bin/webhix
 VOLUME ["/data"]
 EXPOSE 8080
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=5 \
+  CMD wget -q -O /dev/null http://localhost:8080/healthz || exit 1
 ENTRYPOINT ["webhix", "serve"]
