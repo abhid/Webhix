@@ -49,6 +49,8 @@ func newDependencies(ctx context.Context, cfg *config.Config) (*dependencies, er
 	deps.handlers = newHandlers(&deps)
 	deps.handlers.registerRoutes()
 
+	mux.HandleFunc("GET /healthz", server.HealthHandler())
+
 	staticFS, err := fs.Sub(web.Static, "static")
 	if err != nil {
 		return nil, err
