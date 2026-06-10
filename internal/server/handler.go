@@ -69,7 +69,6 @@ func (h *Hook) RegisterRoutes() {
 	h.deps.Mux.HandleFunc("GET /api/endpoints/{token}/response", h.GetResponse)
 	h.deps.Mux.HandleFunc("PUT /api/endpoints/{token}/response", h.SetResponse)
 	h.deps.Mux.HandleFunc("/r/{token}", h.ReceiveWebhook)
-	h.deps.Mux.HandleFunc("GET /healthz", h.Health)
 }
 
 func (h *Hook) ListEndpoints(w http.ResponseWriter, r *http.Request) {
