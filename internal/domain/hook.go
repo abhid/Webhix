@@ -38,6 +38,37 @@ type HookResponse struct {
 	UpdatedAt  time.Time
 }
 
+type Page struct {
+	Limit  int64
+	Offset int64
+}
+
+const (
+	DefaultPageLimit int64 = 100
+	MaxPageLimit     int64 = 1000
+)
+
+// Normalize clamps limit/offset to safe bounds.
+func (p Page) Normalize() Page {
+	if p.Limit <= 0 {
+		p.Limit = DefaultPageLimit
+	}
+	if p.Limit > MaxPageLimit {
+		p.Limit = MaxPageLimit
+	}
+	if p.Offset < 0 {
+		p.Offset = 0
+	}
+	return p
+}
+
+type WebhookRequestPage struct {
+	Requests []WebhookRequest
+	Total    int64
+	Limit    int64
+	Offset   int64
+}
+
 type CreateWebhookRequestParams struct {
 	HookID      int64
 	Method      string

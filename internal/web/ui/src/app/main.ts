@@ -1,3 +1,6 @@
+import '@fontsource-variable/inter';
+import '@fontsource/monaspace-neon/400.css';
+import '@fontsource/monaspace-neon/500.css';
 import './styles.css';
 
 import {
@@ -76,6 +79,8 @@ function init(): void {
   }
 
   setInterval(() => refreshRelativeTimes(elements.requestList), 15000);
+
+  void loadEndpoints();
 }
 
 function switchSection(section: string | undefined): void {

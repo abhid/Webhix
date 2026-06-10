@@ -240,15 +240,35 @@ func (q *Queries) ListHooksWithRequestCounts(ctx context.Context) ([]ListHooksWi
 	return items, nil
 }
 
+const countWebhookRequestsByHookID = `-- name: CountWebhookRequestsByHookID :one
+SELECT COUNT(*)
+FROM webhook_requests
+WHERE hook_id = ?
+`
+
+func (q *Queries) CountWebhookRequestsByHookID(ctx context.Context, hookID int64) (int64, error) {
+	row := q.db.QueryRowContext(ctx, countWebhookRequestsByHookID, hookID)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const listWebhookRequestsByHookID = `-- name: ListWebhookRequestsByHookID :many
 SELECT id, hook_id, method, path, query, headers, body, remote_addr, content_type, body_size, received_at
 FROM webhook_requests
 WHERE hook_id = ?
 ORDER BY received_at DESC, id DESC
+LIMIT ? OFFSET ?
 `
 
-func (q *Queries) ListWebhookRequestsByHookID(ctx context.Context, hookID int64) ([]WebhookRequest, error) {
-	rows, err := q.db.QueryContext(ctx, listWebhookRequestsByHookID, hookID)
+type ListWebhookRequestsByHookIDParams struct {
+	HookID int64 `json:"hook_id"`
+	Limit  int64 `json:"limit"`
+	Offset int64 `json:"offset"`
+}
+
+func (q *Queries) ListWebhookRequestsByHookID(ctx context.Context, arg ListWebhookRequestsByHookIDParams) ([]WebhookRequest, error) {
+	rows, err := q.db.QueryContext(ctx, listWebhookRequestsByHookID, arg.HookID, arg.Limit, arg.Offset)
 	if err != nil {
 		return nil, err
 	}

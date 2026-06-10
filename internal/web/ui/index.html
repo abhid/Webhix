@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Webhix</title>
+    <title>Webhix — Webhook Inspector</title>
   </head>
 
   <body>
@@ -13,44 +13,34 @@
           <div class="brand-mark">W</div>
           <div class="logo">webhix</div>
         </div>
-        <button class="new-btn" id="newEndpointButton">+ New Endpoint</button>
-        <nav class="nav">
-          <a class="nav-item active" href="#">Dashboard</a>
-          <a class="nav-item" href="#">Endpoints</a>
-          <a class="nav-item" href="#">Requests</a>
-          <a class="nav-item" href="#">Settings</a>
-        </nav>
-        <div class="overview-card">
-          <h3>Overview</h3>
-          <dl>
-            <div>
-              <dt>Endpoints</dt>
-              <dd id="overviewEndpoints">0</dd>
-            </div>
-            <div>
-              <dt>Total Requests</dt>
-              <dd id="overviewRequests">0</dd>
-            </div>
-          </dl>
+
+        <button class="new-btn" id="newEndpointButton">
+          <span class="new-btn-icon">+</span> New Endpoint
+        </button>
+
+        <div class="endpoints-panel">
+          <div class="panel-header">
+            <h3>Endpoints</h3>
+            <span class="count-badge" id="endpointsPanelCount">0</span>
+          </div>
+          <div id="endpointsList" class="endpoints-list">
+            <p class="endpoints-empty">No endpoints yet. Create one to get started.</p>
+          </div>
         </div>
+
         <div class="sidebar-footer">
-          <strong>webhix</strong>
-          <span>Self-hosted · Open source</span>
+          <div class="server-pill">
+            <span class="status-dot" id="statusDot" title="Live connection"></span>
+            <span>Server v0.1.0</span>
+          </div>
+          <span class="footer-tag">Self-hosted · Open source</span>
         </div>
       </aside>
 
       <div class="workspace">
-        <header>
-          <div class="search-box">Search endpoints...</div>
-          <div class="server-pill">
-            <span class="status-dot" id="statusDot" title="SSE connection"></span> Server v0.1.0
-          </div>
-          <button class="icon-btn" title="Docs">Docs</button>
-          <button class="avatar-btn" title="Account">AD</button>
-        </header>
-
         <div id="overlay">
           <div class="overlay-card">
+            <div class="overlay-mark">W</div>
             <h2>Welcome to Webhix</h2>
             <p>Enter an endpoint token, or create a new one to start capturing webhooks.</p>
             <div class="token-form">
@@ -71,22 +61,15 @@
         </div>
 
         <div class="main hidden" id="mainArea">
-          <aside class="endpoints-panel">
-            <div class="panel-header">
-              <h3>Endpoints</h3>
-              <span class="count-badge" id="endpointsPanelCount">0</span>
-            </div>
-            <div id="endpointsList"></div>
-          </aside>
-
           <div class="detail-panel" id="detailPanel">
             <div class="endpoint-top">
-              <div>
+              <div class="endpoint-top-main">
                 <div class="endpoint-title">
                   <h1 id="endpointTitle">Endpoint</h1>
                   <span class="active-chip">Active</span>
                 </div>
                 <div id="pillArea" class="endpoint-pill hidden">
+                  <span class="pill-label">POST</span>
                   <span class="url" id="pillURL"></span>
                   <button
                     class="copy-btn"
@@ -100,73 +83,59 @@
               </div>
               <div class="stats">
                 <div><span>Total Requests</span><strong id="countBadge">0</strong></div>
-                <div><span>Today</span><strong id="statToday">0</strong></div>
-                <div><span>Last Request</span><strong id="statLast">Waiting</strong></div>
               </div>
             </div>
 
-            <div class="section-tabs">
-              <button class="section-tab active" data-section="requests">Requests</button>
-              <button class="section-tab" data-section="settings">Settings</button>
+            <div class="request-toolbar">
+              <input
+                type="text"
+                class="toolbar-search"
+                id="searchInput"
+                placeholder="Search requests..."
+              />
+              <button class="toolbar-btn" id="methodFilter">All Methods</button>
+              <span class="toolbar-live"><span class="live-dot"></span> Live</span>
             </div>
 
-            <div id="requestsSection" class="requests-section">
-              <div class="request-toolbar">
-                <input
-                  type="text"
-                  class="toolbar-search"
-                  id="searchInput"
-                  placeholder="Search requests..."
-                />
-                <button class="toolbar-btn" id="methodFilter">All Methods</button>
-                <button class="toolbar-btn live">Live</button>
-              </div>
-
-              <div class="inspector-grid">
-                <div class="list-panel">
-                  <div class="request-list" id="requestList">
-                    <div class="empty-state" id="emptyState">
-                      <div class="empty-icon" aria-hidden="true">HTTP</div>
-                      <div>Waiting for requests&hellip;</div>
-                      <div class="empty-hint">Send a webhook to your endpoint URL</div>
-                    </div>
-                  </div>
-                </div>
-
-                <div class="inspector-panel">
-                  <div class="detail-placeholder" id="detailPlaceholder">
-                    <div class="big-icon" aria-hidden="true">Inspect</div>
-                    <div>Select a request to inspect it</div>
-                  </div>
-                  <div id="detailContent" class="detail-content hidden">
-                    <div class="detail-top">
-                      <div class="detail-title">
-                        <span class="method-badge" id="dtMethod"></span>
-                        <span class="detail-path" id="dtPath"></span>
-                        <button class="curl-btn" id="curlButton" title="Copy as curl command">
-                          Copy as curl
-                        </button>
-                        <button class="curl-btn" id="replayButton" title="Replay this request">
-                          Replay
-                        </button>
-                      </div>
-                      <div class="detail-ts" id="dtTs"></div>
-                      <div class="tabs">
-                        <button class="tab active" data-tab="body">Body</button>
-                        <button class="tab" data-tab="headers">Headers</button>
-                        <button class="tab" data-tab="details">Details</button>
-                      </div>
-                    </div>
-                    <div class="tab-content" id="tabContent"></div>
+            <div class="inspector-grid">
+              <div class="list-panel">
+                <div class="request-list" id="requestList">
+                  <div class="empty-state" id="emptyState">
+                    <div class="empty-icon" aria-hidden="true">HTTP</div>
+                    <div class="empty-title">Waiting for requests&hellip;</div>
+                    <div class="empty-hint">Send a webhook to your endpoint URL</div>
                   </div>
                 </div>
               </div>
-            </div>
 
-            <div id="settingsSection" class="settings-section hidden">
-              <div class="settings-panel">
-                <h3 class="settings-title">Endpoint Settings</h3>
-                <div id="webhookSettings"></div>
+              <div class="inspector-panel">
+                <div class="detail-placeholder" id="detailPlaceholder">
+                  <div class="big-icon" aria-hidden="true">{ }</div>
+                  <div>Select a request to inspect it</div>
+                </div>
+                <div id="detailContent" class="detail-content hidden">
+                  <div class="detail-top">
+                    <div class="detail-title">
+                      <span class="method-badge" id="dtMethod"></span>
+                      <span class="detail-path" id="dtPath"></span>
+                      <button class="curl-btn" id="curlButton" title="Copy as curl command">
+                        Copy as curl
+                      </button>
+                      <button class="curl-btn" id="replayButton" title="Replay this request">
+                        Replay
+                      </button>
+                    </div>
+                    <div class="detail-ts" id="dtTs"></div>
+                    <div class="tabs">
+                      <button class="tab active" data-tab="headers">Headers</button>
+                      <button class="tab" data-tab="body">Body</button>
+                      <button class="tab" data-tab="query">Query</button>
+                      <button class="tab" data-tab="info">Info</button>
+                      <button class="tab" data-tab="settings">Settings</button>
+                    </div>
+                  </div>
+                  <div class="tab-content" id="tabContent"></div>
+                </div>
               </div>
             </div>
           </div>

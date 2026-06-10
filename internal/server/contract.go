@@ -42,6 +42,13 @@ type WebhookRequestContract struct {
 	ReceivedAt  time.Time `json:"receivedAt"`
 }
 
+type PaginatedRequestsContract struct {
+	Items  []WebhookRequestContract `json:"items"`
+	Total  int64                    `json:"total"`
+	Limit  int64                    `json:"limit"`
+	Offset int64                    `json:"offset"`
+}
+
 type HookResponseContract struct {
 	StatusCode int               `json:"statusCode"`
 	Headers    map[string]string `json:"headers"`
