@@ -6,7 +6,6 @@ export interface Endpoint {
   name?: string;
   url: string;
   createdAt: string;
-  requestCount?: number;
 }
 
 export async function fetchEndpoints(): Promise<Endpoint[]> {

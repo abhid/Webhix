@@ -1,4 +1,4 @@
-export type RequestTab = 'body' | 'headers' | 'details';
+export type RequestTab = 'headers' | 'body' | 'query' | 'info' | 'settings';
 
 export interface WebhookRequest {
   id: number;

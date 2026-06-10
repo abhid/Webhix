@@ -7,9 +7,12 @@ import {
   isBase64,
   looksLikeJSON,
   methodClass,
-  relativeWebhookPath,
   syntaxHighlightJSON,
 } from '../../shared/lib/format';
+import {
+  fetchHookResponse,
+  saveHookResponse,
+} from '../../features/endpoint-session/api/endpoint-api';
 
 export function renderSelectedDetail(elements: Elements, state: AppState): void {
   const request = selectedRequest(state);
@@ -23,11 +26,10 @@ export function renderSelectedDetail(elements: Elements, state: AppState): void 
 
   elements.detailMethod.textContent = request.method;
   elements.detailMethod.className = `method-badge ${methodClass(request.method)}`;
-  elements.detailPath.textContent = relativeWebhookPath(request.path, state.token);
-  elements.detailPath.title = request.path;
+  elements.detailPath.textContent = request.path;
   elements.detailTimestamp.textContent = formatDate(request.receivedAt);
 
-  renderActiveTab(elements, request, state.activeTab);
+  renderActiveTab(elements, request, state.activeTab, state.token);
   renderTabButtons(elements, state.activeTab);
 }
 
@@ -36,18 +38,29 @@ export function showPlaceholder(elements: Elements): void {
   elements.detailContent.classList.add('hidden');
 }
 
-function renderActiveTab(elements: Elements, request: WebhookRequest, tab: RequestTab): void {
+function renderActiveTab(
+  elements: Elements,
+  request: WebhookRequest,
+  tab: RequestTab,
+  token: string | null,
+): void {
   elements.tabContent.replaceChildren();
 
   switch (tab) {
-    case 'body':
-      elements.tabContent.appendChild(createBody(request.body, request.contentType));
-      break;
     case 'headers':
       elements.tabContent.appendChild(createKeyValueTable(parseHeaders(request.headers)));
       break;
-    case 'details':
-      elements.tabContent.appendChild(createDetails(request));
+    case 'body':
+      elements.tabContent.appendChild(createBody(request.body, request.contentType));
+      break;
+    case 'query':
+      elements.tabContent.appendChild(createKeyValueTable(parseQuery(request.query)));
+      break;
+    case 'info':
+      elements.tabContent.appendChild(createInfo(request));
+      break;
+    case 'settings':
+      elements.tabContent.appendChild(createSettingsForm(token));
       break;
   }
 }
@@ -134,26 +147,6 @@ function createBody(body: unknown, contentType: string | undefined): HTMLPreElem
   return pre;
 }
 
-function createDetails(request: WebhookRequest): HTMLDivElement {
-  const wrap = document.createElement('div');
-  wrap.className = 'details-tab';
-
-  const query = parseQuery(request.query);
-  if (query.length > 0) {
-    const heading = document.createElement('h4');
-    heading.className = 'details-heading';
-    heading.textContent = 'Query Parameters';
-    wrap.append(heading, createKeyValueTable(query));
-  }
-
-  const metaHeading = document.createElement('h4');
-  metaHeading.className = 'details-heading';
-  metaHeading.textContent = 'Metadata';
-  wrap.append(metaHeading, createInfo(request));
-
-  return wrap;
-}
-
 function createInfo(request: WebhookRequest): HTMLDivElement {
   const size = request.bodySize != null ? formatBytes(request.bodySize) : '0 B';
   const grid = document.createElement('div');
@@ -211,4 +204,81 @@ function parseQuery(raw: string | undefined): Array<[string, string]> {
 
 function isEmptyArray(value: unknown): boolean {
   return Array.isArray(value) && value.length === 0;
+}
+
+function createSettingsForm(token: string | null): HTMLDivElement {
+  const wrap = document.createElement('div');
+  wrap.className = 'settings-form';
+
+  const statusLabel = document.createElement('label');
+  statusLabel.textContent = 'Response Status Code';
+  const statusInput = document.createElement('input');
+  statusInput.type = 'number';
+  statusInput.min = '100';
+  statusInput.max = '599';
+  statusInput.value = '200';
+  statusInput.className = 'settings-input';
+
+  const headersLabel = document.createElement('label');
+  headersLabel.textContent = 'Response Headers (JSON)';
+  const headersInput = document.createElement('textarea');
+  headersInput.className = 'settings-textarea';
+  headersInput.placeholder = '{"Content-Type": "application/json"}';
+  headersInput.rows = 3;
+
+  const bodyLabel = document.createElement('label');
+  bodyLabel.textContent = 'Response Body';
+  const bodyInput = document.createElement('textarea');
+  bodyInput.className = 'settings-textarea';
+  bodyInput.placeholder = '{"ok": true}';
+  bodyInput.rows = 5;
+
+  const saveBtn = document.createElement('button');
+  saveBtn.className = 'settings-save-btn';
+  saveBtn.textContent = 'Save';
+
+  wrap.append(statusLabel, statusInput, headersLabel, headersInput, bodyLabel, bodyInput, saveBtn);
+
+  if (token) {
+    void fetchHookResponse(token).then((resp) => {
+      statusInput.value = String(resp.statusCode || 200);
+      headersInput.value = Object.keys(resp.headers || {}).length
+        ? JSON.stringify(resp.headers, null, 2)
+        : '';
+      bodyInput.value = resp.body || '';
+    });
+
+    saveBtn.addEventListener('click', () => {
+      let headers: Record<string, string> = {};
+      try {
+        if (headersInput.value.trim()) {
+          headers = JSON.parse(headersInput.value) as Record<string, string>;
+        }
+      } catch {
+        saveBtn.textContent = 'Invalid JSON in headers';
+        setTimeout(() => (saveBtn.textContent = 'Save'), 2000);
+        return;
+      }
+
+      saveBtn.disabled = true;
+      void saveHookResponse(token, {
+        statusCode: parseInt(statusInput.value, 10) || 200,
+        headers,
+        body: bodyInput.value,
+      })
+        .then(() => {
+          saveBtn.textContent = 'Saved!';
+          setTimeout(() => (saveBtn.textContent = 'Save'), 2000);
+        })
+        .catch(() => {
+          saveBtn.textContent = 'Error';
+          setTimeout(() => (saveBtn.textContent = 'Save'), 2000);
+        })
+        .finally(() => {
+          saveBtn.disabled = false;
+        });
+    });
+  }
+
+  return wrap;
 }

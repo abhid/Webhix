@@ -1,6 +1,6 @@
 import type { Elements } from '../../app/dom';
 import { filteredRequests, type AppState } from '../../entities/request/model/request-state';
-import { formatRelativeTime, methodClass, relativeWebhookPath } from '../../shared/lib/format';
+import { formatRelativeTime, methodClass } from '../../shared/lib/format';
 
 export function renderRequestList(
   elements: Elements,
@@ -10,7 +10,6 @@ export function renderRequestList(
   const visible = filteredRequests(state);
 
   elements.countBadge.textContent = String(state.requests.length);
-  updateEndpointStats(elements, state);
 
   if (visible.length === 0) {
     elements.requestList.replaceChildren();
@@ -37,7 +36,7 @@ export function renderRequestList(
     const path = document.createElement('span');
     path.className = 'request-path';
     path.title = request.path;
-    path.textContent = relativeWebhookPath(request.path, state.token);
+    path.textContent = request.path;
 
     const time = document.createElement('span');
     time.className = 'request-time';
@@ -63,21 +62,4 @@ export function refreshRelativeTimes(root: ParentNode = document): void {
   root.querySelectorAll<HTMLElement>('.request-time').forEach((element) => {
     element.textContent = formatRelativeTime(element.dataset.receivedAt);
   });
-}
-
-function updateEndpointStats(elements: Elements, state: AppState): void {
-  const startOfToday = new Date();
-  startOfToday.setHours(0, 0, 0, 0);
-
-  let today = 0;
-  let latest: string | undefined;
-  for (const request of state.requests) {
-    if (!request.receivedAt) continue;
-    const received = new Date(request.receivedAt);
-    if (received.getTime() >= startOfToday.getTime()) today += 1;
-    if (!latest || received.getTime() > new Date(latest).getTime()) latest = request.receivedAt;
-  }
-
-  elements.statToday.textContent = String(today);
-  elements.statLast.textContent = latest ? formatRelativeTime(latest) : 'Waiting';
 }
